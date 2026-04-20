@@ -1,0 +1,75 @@
+{
+  "experiment_name": "dpcr_ids_research_v1",
+  "artifacts_dir": "artifacts/dpcr_ids_research_v1",
+  "seed": 42,
+  "splits": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "can": {
+    "dataset_root": "datasets/Car-Hacking Dataset",
+    "window_size": 100,
+    "stride": 50,
+    "feature_names": [
+      "can_id",
+      "dlc",
+      "d0",
+      "d1",
+      "d2",
+      "d3",
+      "d4",
+      "d5",
+      "d6",
+      "d7",
+      "iat_same_id",
+      "payload_entropy",
+      "payload_delta_mean",
+      "msg_freq_hz",
+      "local_busload",
+      "bitflip_ratio"
+    ],
+    "files": [
+      "DoS_dataset.csv",
+      "Fuzzy_dataset.csv",
+      "gear_dataset.csv",
+      "RPM_dataset.csv"
+    ]
+  },
+  "ethernet": {
+    "primary_dataset_root": "datasets/tow-ids",
+    "smoke_dataset_root": "datasets/autoeth-intrusion-dataset",
+    "payload_bytes": 1024,
+    "frame_height": 32,
+    "frame_width": 32,
+    "label_csv_glob": "*.csv"
+  },
+  "fusion": {
+    "enabled": true,
+    "expert_order": ["can", "ethernet"],
+    "expert_dim": 129,
+    "hidden_dim": 8,
+    "fusion_dim": 16,
+    "bucket_ms": 250,
+    "use_raw_logits": true,
+    "pseudo_time_step": 0.01
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 50,
+    "learning_rate": 0.0002,
+    "weight_decay": 1e-05,
+    "early_stopping_patience": 10,
+    "distillation": {
+      "alpha": 0.5,
+      "temperature": 4.0
+    }
+  },
+  "routing": {
+    "tau_low": 0.15,
+    "tau_high": 0.85,
+    "fallback_uncertainty_low": 0.3,
+    "fallback_uncertainty_high": 0.7,
+    "bucket_ms": 250
+  }
+}

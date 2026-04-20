@@ -1,0 +1,4 @@
+﻿frame_idx,label,protocol,attack_type
+0,0,avtp,normal
+1,1,avtp,injection
+2,0,gptp,normal

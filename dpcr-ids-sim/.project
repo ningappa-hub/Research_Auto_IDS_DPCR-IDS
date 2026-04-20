@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+    <name>dpcr-ids-sim</name>
+    <comment>DPCR-IDS Automotive Network Intrusion Detection Simulation</comment>
+    <projects>
+    </projects>
+    <buildSpec>
+        <buildCommand>
+            <name>org.omnetpp.cdt.builder</name>
+            <arguments>
+            </arguments>
+        </buildCommand>
+    </buildSpec>
+    <natures>
+        <nature>org.omnetpp.main.omnetppnature</nature>
+        <nature>org.eclipse.cdt.core.cnature</nature>
+        <nature>org.eclipse.cdt.core.ccnature</nature>
+        <nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+    </natures>
+</projectDescription>

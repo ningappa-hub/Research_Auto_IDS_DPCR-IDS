@@ -1,0 +1,16 @@
+﻿{
+  "experiment_name": "dpcr_ids_runtime_v1",
+  "artifacts_dir": "artifacts/runtime",
+  "routing": {
+    "tau_low": 0.15,
+    "tau_high": 0.85,
+    "fallback_uncertainty_low": 0.3,
+    "fallback_uncertainty_high": 0.7,
+    "bucket_ms": 250
+  },
+  "runtime": {
+    "deadline_ms": 20.0,
+    "fail_open": true,
+    "health_log_path": "artifacts/runtime/health.jsonl"
+  }
+}

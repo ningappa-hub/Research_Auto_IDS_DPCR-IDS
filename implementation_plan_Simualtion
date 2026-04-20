@@ -1,0 +1,56 @@
+# Research Validation & Simulation Plan
+
+This document outlines the methodology to validate the DPCR-IDS (Late-Fusion CAN + Automotive Ethernet) architecture for research publication, addressing the limitations (offline execution, Python-runtime benchmarking) present in the current `simulate_real_model_runtime.py` and expanding on the live bench roadmap.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The transition from offline surrogate data to live edge validation involves crucial choices in hardware setups. Please review the proposed **Hardware-in-the-Loop (HIL) Testbed** and whether the datasets (Car-Hacking Dataset + Tow-IDS) are sufficient for your target publication, or if newer datasets like the ROAD dataset should be integrated.
+
+## Proposed Changes and Simulation Pipeline
+
+### 1. Shift from Offline Replay to Hardware-In-The-Loop (HIL)
+Currently, `dpcr-ids-replay-fusion` tests latency by feeding `.jsonl` files on a Raspberry Pi. Real validation demands a live data ingestion simulation:
+- **CAN Simulation**: Use `can-utils` (specifically `canplayer` and `cangen`) and a USB-CAN adapter with a physical `vcan0`/`can0` interface to replay payload traces with realistic timings.
+- **Ethernet Simulation**: Utilize `tcpreplay` over a mirrored RJ45 port (`eth0`) or a T1 media converter to stream AutoEth frames.
+- **Goal**: Measure "capture-to-decision" latency instead of purely "tensor-to-decision".
+
+### 2. Live Feature Construction Bridge (Live Exporter)
+Develop a real-time ingestion script that acts on the streaming data:
+- **Windowing**: Group real-time CAN messages into \`[16, 100]\` windows.
+- **Image Construction**: Buffer Ethernet payloads into \`[3, 32, 32]\` tensors.
+- **Pipelining**: We will run expert feature extractors (CAN Logit+Embedding, Eth Logit+Embedding) natively in C++ or via `onnxruntime` on the edge device to continuously feed the `[2, 129]` tensor to `fusion_student.onnx`.
+
+### 3. Adversarial and Robustness Scenarios
+Research publications require evaluating resilience:
+- Introduce **Concept Drift**: Inject fuzzy and Masquerade attacks with shifted bit distributions to test the `ProtocolFallbackModel` and `ConfidenceRouter`.
+- **Latency Drift**: Purposefully increase `tcpreplay` frame injection rates to test the runtime aggregator's fail-open behavior and queue management under severe bus load.
+
+## Evaluation Metrics for Publication
+
+To conform to state-of-the-art automotive cybersecurity papers, we will track and tabulate:
+- **Standard Detection Metrics**: F1-Score, Precision, Recall, and AUC.
+- **Critical Safety Metrics**: 
+  - **False Positive Rate (FPR)**: Extremely low FPR is required for production vehicle systems to avoid driver distraction or autonomous-system override.
+  - **Expected Calibration Error (ECE)**: To prove the TemperatureScaler provides trustworthy probabilities.
+- **Edge Deployment Economics**:
+  - `onnx_size_mb`: Disk footprint.
+  - `latency_ms_p95` & `latency_ms_p99`: Guaranteed bound for inference dead-times.
+  - `rss_mb_peak`: Maximum RAM utilization on the Gateway ECU (Raspberry Pi/Jetson).
+  - CPU thresholding and Thermal Throttling observations over a 2-hour continuous live replay.
+
+## Open Questions
+
+> [!WARNING]
+> 1. Do we have access to physical media converters for Automotive Ethernet testing, or should we simulate over standard 100BASE-TX RJ45?
+> 2. Are we exporting the individual CAN and Ethernet experts to ONNX, or should they remain in PyTorch on the Raspberry Pi while only the Fusion head is run in ONNX? (Running everything in ONNX is heavily recommended for performance).
+> 3. Does the target research venue (e.g., NDSS, IEEE VTC, USENIX Security) require comparison against a specific state-of-the-art baseline (e.g., standard LSTM/CNN without late-fusion)?
+
+## Verification Plan
+
+### Automated Replay Benchmarks
+- We will execute the `dpcr-ids-benchmark-fusion` tool natively on the Pi continuously to plot a memory and CPU heatmap.
+- Test routing ratios to ensure fallback thresholds trigger correctly upon injection of out-of-distribution (OOD) data.
+
+### HIL Live Capture Verification
+- Deploy `canplayer` dumping to `vcan0`, while logging from the IDS bridge script to ensure true capture-to-insight end-to-end latency falls within the `bucket_ms` routing deadline (e.g., 250ms).

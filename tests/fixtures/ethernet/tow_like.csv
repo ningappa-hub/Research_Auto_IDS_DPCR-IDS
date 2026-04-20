@@ -1,0 +1,4 @@
+﻿timestamp_s,inter_arrival_ms,rate_5pkt_per_s,burst_count_5ms,length,has_eth,has_ip,has_udp,ip_proto,ip_ttl,src_port,dst_port,payload_len,is_broadcast_dst,is_multicast_dst,label
+0.001,0.0,0.0,1,45,1,1,1,17,64,5000,6000,3,0,0,Normal
+0.002,1.0,100.0,1,45,1,1,1,17,-1,-1,-1,3,0,0,AVTP_BG
+0.003,1.0,100.0,1,48,1,1,1,17,64,53,53,6,1,1,F_I

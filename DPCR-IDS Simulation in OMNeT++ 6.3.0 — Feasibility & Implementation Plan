@@ -1,0 +1,292 @@
+# DPCR-IDS Simulation in OMNeT++ 6.3.0 — Feasibility & Implementation Plan
+
+## Executive Summary
+
+**Yes, it is feasible to simulate your DPCR-IDS in OMNeT++ 6.3.0**, but it requires significant custom module development in C++/NED. OMNeT++ provides the discrete-event simulation backbone and realistic network timing — the two things your current Python-based `simulate_real_model_runtime.py` cannot deliver. Below is the full analysis.
+
+---
+
+## 1. What OMNeT++ Brings vs. Your Current Setup
+
+| Aspect | Current Python Replay | OMNeT++ Simulation |
+|--------|----------------------|-------------------|
+| **Bus Timing** | Pseudo-timestamps (`pseudo_time_step: 0.01`) | Realistic CAN arbitration delays, Ethernet frame queuing |
+| **Multi-ECU Topology** | Single-process sequential replay | True parallel ECU message generation with bus contention |
+| **Attack Injection** | Pre-labeled CSV rows | Attacker ECU nodes that inject frames at runtime |
+| **Latency Measurement** | Python `time.perf_counter()` on host CPU | Simulated capture-to-decision latency reflecting bus propagation |
+| **Gateway Behavior** | `DecisionAggregator` with synthetic timestamps | Actual CAN↔Ethernet gateway forwarding with queuing |
+| **Reproducibility** | Seed-based but host-dependent | Fully deterministic discrete-event simulation |
+
+---
+
+## 2. Required OMNeT++ Frameworks
+
+You have `omnetpp-6.3.0` installed. You will need to install several additional frameworks inside your `opp_env` workspace:
+
+### Core Stack
+
+| Framework | Purpose | Compatibility |
+|-----------|---------|---------------|
+| **INET 4.x** | Ethernet, TCP/IP, TSN (802.1Q) models, switches, hosts | ✅ OMNeT++ 6.3.0 |
+| **FiCo4OMNeT** | CAN bus physical & data-link layer model | ✅ OMNeT++ 6.0.2+ (CoRE-RG GitHub) |
+| **CoRE4INET** | Real-time Ethernet (AVB / TSN) extensions | ✅ OMNeT++ 6.x |
+| **SignalsAndGateways** | CAN↔Ethernet gateway modules (frame mapping, prioritization) | ✅ Depends on FiCo4OMNeT + CoRE4INET |
+
+### ML Inference
+
+| Library | Purpose |
+|---------|---------|
+| **ONNX Runtime (C++ API)** | Load your exported `fusion_student.onnx`, `can_student.onnx`, `eth_student.onnx` and run inference inside OMNeT++ modules |
+
+---
+
+## 3. Mapping DPCR-IDS Components → OMNeT++ Modules
+
+```mermaid
+graph TB
+    subgraph "Simulated Vehicle Network (NED Topology)"
+        ECU_Sensor["ECU: Sensor Node<br/>(CAN periodic msgs)"]
+        ECU_ADAS["ECU: ADAS Domain<br/>(Ethernet frames)"]
+        ECU_Attacker["ECU: Attacker Node<br/>(DoS/Fuzzy/Masquerade)"]
+        
+        CAN_Bus["CAN Bus<br/>(FiCo4OMNeT CanBus)"]
+        ETH_Switch["Ethernet Switch<br/>(INET EthernetSwitch + TSN)"]
+        
+        GW["Central Gateway ECU<br/>(SignalsAndGateways)"]
+        
+        IDS_CAN["IDS Module: CAN Expert<br/>(Custom cSimpleModule)"]
+        IDS_ETH["IDS Module: Eth Expert<br/>(Custom cSimpleModule)"]
+        IDS_FUSION["IDS Module: Fusion Head<br/>(Custom cSimpleModule)"]
+        IDS_ROUTER["Confidence Router<br/>(Custom cSimpleModule)"]
+        IDS_AGG["Decision Aggregator<br/>(Custom cSimpleModule)"]
+    end
+    
+    ECU_Sensor --> CAN_Bus
+    ECU_Attacker --> CAN_Bus
+    ECU_ADAS --> ETH_Switch
+    CAN_Bus --> GW
+    ETH_Switch --> GW
+    GW --> IDS_CAN
+    GW --> IDS_ETH
+    IDS_CAN --> IDS_FUSION
+    IDS_ETH --> IDS_FUSION
+    IDS_FUSION --> IDS_ROUTER
+    IDS_ROUTER --> IDS_AGG
+```
+
+### 3.1 CAN Expert Module (`CanExpertIDS`)
+
+Maps to your [CanStudentTCN](file:///c:/ResearchAutoIDS/src/dpcr_ids/models/can_student.py):
+
+- **Input**: Intercepts CAN frames from `FiCo4OMNeT` bus model
+- **Windowing**: Buffers `window_size=100` frames with `stride=50` (matching your config)
+- **Feature extraction**: Extracts the 16 features (`can_id`, `dlc`, `d0-d7`, `iat_same_id`, `payload_entropy`, etc.) in C++
+- **Inference**: Loads `can_student.onnx` via ONNX Runtime C++ API, outputs logit + 128-d embedding
+- **Output**: Sends `[1, 129]` tensor (logit + embedding) to the Fusion module
+
+### 3.2 Ethernet Expert Module (`EthExpertIDS`)
+
+Maps to your [EthStudentCNN](file:///c:/ResearchAutoIDS/src/dpcr_ids/models/eth_student.py):
+
+- **Input**: Intercepts Ethernet frames from INET switch/tap
+- **Image construction**: Buffers payloads into `[3, 32, 32]` tensor (matching your config)
+- **Inference**: Loads `eth_student.onnx`, outputs logit + 128-d embedding
+- **Output**: Sends `[1, 129]` tensor to Fusion module
+
+### 3.3 Late Fusion Module (`FusionIDS`)
+
+Maps to your [TinyLateFusionMetaModel](file:///c:/ResearchAutoIDS/src/dpcr_ids/models/late_fusion.py):
+
+- **Input**: Receives `[2, 129]` stacked expert outputs
+- **Inference**: Loads `fusion_student.onnx`, outputs fused logit
+- **Output**: Passes calibrated probability to the Router
+
+### 3.4 Confidence Router Module
+
+Maps to your [ConfidenceRouter](file:///c:/ResearchAutoIDS/src/dpcr_ids/runtime/router.py):
+
+- Pure C++ logic (no ML): `tau_low=0.15`, `tau_high=0.85`
+- Routes to fast path (ATTACK/NORMAL) or heavy path (fallback/ESCALATE)
+
+### 3.5 Decision Aggregator Module
+
+Maps to your [DecisionAggregator](file:///c:/ResearchAutoIDS/src/dpcr_ids/runtime/aggregator.py):
+
+- Time-bucketed merging (`bucket_ms=250`) using OMNeT++ simulation time (not wall clock)
+- Priority-based decision: `NORMAL < ATTACK < ESCALATE`
+
+### 3.6 Attacker ECU Modules
+
+Custom traffic generators injecting the attack types from your datasets:
+
+| Attack Type | OMNeT++ Implementation |
+|-------------|----------------------|
+| **DoS** | High-frequency CAN frame injection (flood `canplayer`-style) |
+| **Fuzzy** | Random CAN ID + payload injection at variable rates |
+| **Gear Spoofing** | Targeted CAN ID injection mimicking gear control messages |
+| **RPM Spoofing** | Targeted CAN ID injection mimicking RPM sensor data |
+| **Ethernet Anomaly** | Malformed/oversized Ethernet payloads from attacker node |
+
+---
+
+## 4. What You Gain for Your Publication
+
+> [!IMPORTANT]
+> OMNeT++ simulation adds the following value that reviewer committees expect for top-tier venues (NDSS, IEEE VTC, USENIX Security):
+
+1. **Realistic Latency Analysis**: Capture-to-decision latency including CAN arbitration, Ethernet switching, and gateway forwarding — not just tensor-to-decision
+2. **Bus-Load Impact Study**: Measure IDS detection degradation under varying bus loads (20%, 50%, 80%, 100%)
+3. **Scalable Topology Testing**: Test with 5, 10, 20 ECU configurations to show scalability
+4. **Deterministic Reproducibility**: Exact replay of attack scenarios with OMNeT++ seed control
+5. **Gateway Bottleneck Analysis**: Evaluate where queuing delays cause deadline misses in the 250ms bucket window
+
+---
+
+## 5. Significant Challenges & Honest Assessment
+
+> [!WARNING]
+> ### High-Effort Items
+> 
+> 1. **CAN Feature Extraction in C++**: Your Python pipeline computes `iat_same_id`, `payload_entropy`, `payload_delta_mean`, `msg_freq_hz`, `local_busload`, `bitflip_ratio`. All 16 features must be **reimplemented in C++** inside the OMNeT++ module. This alone is ~2-3 days of work.
+> 
+> 2. **ONNX Runtime Linking**: Building ONNX Runtime as a shared library and integrating it into the OMNeT++ Makefile system (which uses `opp_makemake`) is non-trivial. Expect ~1-2 days of build configuration work.
+> 
+> 3. **FiCo4OMNeT Adaptation**: While compatible with OMNeT++ 6, the CAN frame format in FiCo4OMNeT may not directly expose raw payload bytes. You may need to extend the CAN frame data structure.
+> 
+> 4. **No Pre-built IDS Module Exists**: There is no off-the-shelf IDS module for OMNeT++. Every component listed in Section 3 must be written as a custom `cSimpleModule` in C++ with NED declarations.
+> 
+> 5. **Validation Parity**: You need to ensure the OMNeT++ simulation produces identical detection results to your Python pipeline on the same input data before claiming any new results.
+
+> [!CAUTION]
+> ### Scope vs. Timeline Trade-off
+> 
+> **Full simulation** (all components, all attacks, bus-load sweep) = **4-8 weeks** of development.  
+> **Lightweight simulation** (simplified CAN bus + pre-computed features fed from trace files) = **2-3 weeks**.  
+> **Trace-replay only** (OMNeT++ as a timing/queuing wrapper around pre-computed decisions) = **1-2 weeks**.
+
+---
+
+## 6. Recommended Approach: Hybrid Simulation
+
+Rather than reimplementing your entire ML pipeline in C++, I recommend a **hybrid approach**:
+
+### Tier 1: OMNeT++ Network Simulation (Core Value)
+- Model the vehicle network topology with FiCo4OMNeT (CAN) + INET (Ethernet) + SignalsAndGateways (Gateway)
+- Generate realistic traffic patterns and attack injection with proper bus timing
+- Measure true network-level latencies (capture, queuing, forwarding)
+
+### Tier 2: ML Inference Integration (Choose One)
+
+**Option A — ONNX Runtime in C++ (Recommended for publication)**
+- Export all three models to ONNX
+- Link ONNX Runtime C++ API into OMNeT++ modules
+- Run real inference inside the simulation
+- **Pro**: End-to-end fidelity. **Con**: Complex build setup
+
+**Option B — Pre-computed Trace Replay**
+- Run your Python pipeline offline to generate per-frame `(logit, embedding, label)` tuples
+- OMNeT++ reads these traces and replays them with realistic network timing
+- **Pro**: Fast to implement. **Con**: Cannot test truly novel attack patterns
+
+**Option C — Python Co-simulation via ZeroMQ**
+- OMNeT++ sends captured frame data to a Python process via ZeroMQ
+- Python runs the PyTorch models and returns decisions
+- **Pro**: Reuses existing Python code. **Con**: Slower, less reproducible
+
+---
+
+## 7. Proposed Project Structure
+
+```
+omnetpp-workspace/
+└── dpcr-ids-sim/
+    ├── src/
+    │   ├── nodes/
+    │   │   ├── SensorECU.ned / .cc / .h
+    │   │   ├── AttackerECU.ned / .cc / .h
+    │   │   └── GatewayECU.ned / .cc / .h
+    │   ├── ids/
+    │   │   ├── CanExpertIDS.ned / .cc / .h
+    │   │   ├── EthExpertIDS.ned / .cc / .h
+    │   │   ├── FusionIDS.ned / .cc / .h
+    │   │   ├── ConfidenceRouter.ned / .cc / .h
+    │   │   └── DecisionAggregator.ned / .cc / .h
+    │   ├── traffic/
+    │   │   ├── CanTrafficGenerator.cc / .h
+    │   │   └── EthTrafficGenerator.cc / .h
+    │   └── utils/
+    │       ├── OnnxInference.cc / .h
+    │       └── FeatureExtractor.cc / .h
+    ├── simulations/
+    │   ├── automotive_network.ned      # Full topology
+    │   ├── omnetpp.ini                 # Simulation configs
+    │   ├── attack_dos.ini              # DoS scenario
+    │   ├── attack_fuzzy.ini            # Fuzzy scenario
+    │   └── busload_sweep.ini           # Bus load experiments
+    ├── models/
+    │   ├── can_student.onnx
+    │   ├── eth_student.onnx
+    │   └── fusion_student.onnx
+    └── results/                        # OMNeT++ output vectors/scalars
+```
+
+---
+
+## 8. Installation Steps (Inside Your opp_env)
+
+```bash
+# 1. Install INET framework
+cd ~/default_workspace
+git clone https://github.com/inet-framework/inet.git
+cd inet
+git checkout v4.5.2  # or latest compatible with omnetpp-6.3.0
+make makefiles
+make -j$(nproc)
+
+# 2. Install FiCo4OMNeT (CAN bus model)
+cd ~/default_workspace
+git clone https://github.com/CoRE-RG/FiCo4OMNeT.git
+cd FiCo4OMNeT
+# Follow INSTALL instructions, set INET reference in project
+
+# 3. Install CoRE4INET (Real-time Ethernet)
+cd ~/default_workspace
+git clone https://github.com/CoRE-RG/CoRE4INET.git
+
+# 4. Install SignalsAndGateways (CAN↔Ethernet bridge)
+cd ~/default_workspace
+git clone https://github.com/CoRE-RG/SignalsAndGateways.git
+
+# 5. Install ONNX Runtime (for ML inference)
+# Download pre-built C++ package from https://github.com/microsoft/onnxruntime/releases
+# Extract and note the path for linking
+```
+
+---
+
+## 9. Open Questions
+
+> [!IMPORTANT]
+> 1. **Which simulation depth do you prefer?** Full ONNX-in-C++ (Option A), pre-computed trace replay (Option B), or Python co-simulation (Option C)? This fundamentally affects the timeline and development effort.
+> 
+> 2. **What is your target timeline?** If this is for an upcoming paper submission deadline, the hybrid trace-replay approach (Option B) may be more practical.
+> 
+> 3. **Do you have your models already exported to ONNX?** Your implementation plan mentions `fusion_student.onnx` — are the individual CAN and Ethernet experts also exported?
+> 
+> 4. **Which attack scenarios are priorities?** Should we focus on DoS + Fuzzy (matching your Car-Hacking Dataset) first, or do you also need Ethernet-specific attack generation?
+> 
+> 5. **Do you want to use `opp_env` to install the additional frameworks?** `opp_env` supports installing INET as a managed project — this might be cleaner than manual git cloning.
+
+---
+
+## 10. Verification Plan
+
+### Automated Tests
+- **Parity test**: Run the same 1000-sample trace through both Python replay and OMNeT++ simulation; assert identical detection decisions
+- **Timing sanity**: Verify that simulated CAN frame inter-arrival times match real-world CAN bus specifications (e.g., ~500µs at 500kbit/s)
+- **Build test**: Ensure the OMNeT++ project compiles and a 100-event smoke simulation completes without errors
+
+### Simulation Experiments
+- **Bus-load sweep**: 20%, 50%, 80% bus utilization → measure detection latency degradation
+- **ECU scaling**: 5, 10, 20 ECUs → measure gateway throughput and IDS decision delay
+- **Attack injection rate**: Vary attacker frame rate → measure detection accuracy vs. false positive rate
