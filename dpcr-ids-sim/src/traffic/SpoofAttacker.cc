@@ -38,12 +38,17 @@ void SpoofAttacker::initialize()
 
     attackTimer_ = new cMessage("spoofAttackTimer");
     scheduleAt(simTime() + attackStartTime_, attackTimer_);
+
+    getDisplayString().setTagArg("t", 0, "Spoof idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 }
 
 void SpoofAttacker::handleMessage(cMessage *msg)
 {
     if (msg == stopTimer_) {
         attacking_ = false;
+        getDisplayString().setTagArg("t", 0, "Spoof stopped");
+        getDisplayString().setTagArg("i", 1, "gray");
         cancelAndDelete(stopTimer_);
         stopTimer_ = nullptr;
         cancelAndDelete(attackTimer_);
@@ -56,6 +61,9 @@ void SpoofAttacker::handleMessage(cMessage *msg)
             attacking_ = true;
             stopTimer_ = new cMessage("spoofStopTimer");
             scheduleAt(simTime() + attackDuration_, stopTimer_);
+            getDisplayString().setTagArg("t", 0, "Spoof ACTIVE");
+            getDisplayString().setTagArg("i", 1, "magenta");
+            bubble("Spoof attack active");
             EV_INFO << "Spoof (" << spoofType_ << ") attack STARTED at t="
                     << simTime() << " | targeting CAN ID 0x"
                     << std::hex << spoofCanId_ << std::dec << endl;

@@ -1,0 +1,117 @@
+file 5691726 1776850776                                         
+version 3
+run BusLoadHigh-0-20260422-09:39:31-4146
+attr configname BusLoadHigh
+attr datetime 20260422-09:39:31
+attr datetimef 20260422-093931
+attr experiment BusLoadHigh
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network dpcrids.AutomotiveNetwork
+attr processid 4146
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+config sim-time-limit 20s
+config description "High bus load (~80%) — 15 sensor ECUs"
+config extends General
+config *.numSensorECUs 15
+config *.enableDos true
+config *.dosAttacker.attackStartTime 5s
+config *.dosAttacker.attackDuration 10s
+config *.alertSink.logFile "\"results/ids_alerts_busload_high.csv\""
+config network dpcrids.AutomotiveNetwork
+config sim-time-limit 30s
+config warmup-period 1s
+config repeat 5
+config seed-set 0
+config *.numSensorECUs 5
+config *.numAdasECUs 2
+config *.enableDos false
+config *.enableFuzzy false
+config *.enableSpoof false
+config *.sensor[*].sendInterval 2ms
+config *.sensor[*].numCanIds 10
+config *.sensor[*].payloadLength 8
+config *.adas[*].sendInterval 1ms
+config *.adas[*].payloadLength 512
+config *.gateway.canExpert.onnxModelPath "\"models/can_student.onnx\""
+config *.gateway.canExpert.temperature 0.95
+config *.gateway.canExpert.windowSize 100
+config *.gateway.canExpert.stride 50
+config *.gateway.ethExpert.onnxModelPath "\"models/eth_student.onnx\""
+config *.gateway.ethExpert.temperature 0.5
+config *.gateway.fusion.onnxModelPath "\"models/fusion_student.onnx\""
+config *.gateway.fusion.temperature 1.1
+config *.gateway.fusion.bucketMs 250
+config *.gateway.router.tauLow 0.15
+config *.gateway.router.tauHigh 0.85
+config *.gateway.router.fallbackUncertaintyLow 0.3
+config *.gateway.router.fallbackUncertaintyHigh 0.7
+config *.gateway.aggregator.bucketMs 250
+config *.gateway.aggregator.failOpen true
+config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
+config output-vector-file results/BusLoadHigh-0.vec
+config output-scalar-file results/BusLoadHigh-0.sca
+config eventlog-file results/BusLoadHigh-0.elog
+
+vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
+attr recordingmode vector
+vector 1 AutomotiveNetwork.gateway.canExpert canCalProb:vector ETV
+attr recordingmode vector
+vector 2 AutomotiveNetwork.gateway.canExpert canInferenceMs:vector ETV
+attr recordingmode vector
+vector 3 AutomotiveNetwork.gateway.ethExpert ethLogit:vector ETV
+attr recordingmode vector
+vector 4 AutomotiveNetwork.gateway.ethExpert ethCalProb:vector ETV
+attr recordingmode vector
+vector 5 AutomotiveNetwork.gateway.ethExpert ethInferenceMs:vector ETV
+attr recordingmode vector
+vector 6 AutomotiveNetwork.gateway.fusion fusionLogit:vector ETV
+attr recordingmode vector
+vector 7 AutomotiveNetwork.gateway.fusion fusionCalProb:vector ETV
+attr recordingmode vector
+vector 8 AutomotiveNetwork.gateway.fusion fusionInferenceMs:vector ETV
+attr recordingmode vector
+vector 9 AutomotiveNetwork.gateway.router routeDecision:vector ETV
+attr recordingmode vector
+vector 10 AutomotiveNetwork.gateway.router routePath:vector ETV
+attr recordingmode vector
+vector 11 AutomotiveNetwork.gateway.router routingLatencyMs:vector ETV
+attr recordingmode vector
+vector 12 AutomotiveNetwork.gateway.aggregator aggregatedDecision:vector ETV
+attr recordingmode vector
+vector 13 AutomotiveNetwork.gateway.aggregator bucketSize:vector ETV
+attr recordingmode vector
+vector 14 AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:vector ETV
+attr recordingmode vector
+vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
+attr recordingmode vector
+vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
+attr recordingmode vector
+3	3702 1346394 30962 843998 1.000760658717 17.379414227692 32768 -73.503601074219 -21.906763076782 -1540587.2382336 73553466.540305
+4	1350096 1251934 30962 843998 1.000760658717 17.379414227692 32768 1.0000002e-14 1.0000002e-14 3.2768006553605e-10 3.2768013107193e-24
+5	2602030 1084510 30962 843998 1.000760658717 17.379414227692 32768 0.070165 1.234139 2650.141794 238.01217615095
+0	3686540 177331 30956 925028 1.000558461183 19.99704067917 4850 -4546.1171875 27226.98046875 69624100.681641 1597351686458.6
+1	3863871 188751 30956 925028 1.000558461183 19.99704067917 4850 4.2813326660879e-08 0.99999995718667 3499.9999079512 3499.9997003067
+2	4052622 145367 30956 925028 1.000558461183 19.99704067917 4850 0.076349 0.534145 462.076983 50.050184712985
+3	4197989 219095 844005 925105 17.37955022035 19.999693953837 5244 -67.002632141113 -23.966556549072 -246478.09113121 11768850.944014
+4	4417084 203954 844005 925105 17.37955022035 19.999693953837 5244 1.0000002e-14 1.0000002e-14 5.2440010488007e-11 5.2440020976008e-25
+5	4621038 177176 844005 925105 17.37955022035 19.999693953837 5244 0.070256 0.479885 427.44125 38.279253617488
+6	4798214 179397 30957 925029 1.000558461183 19.99704067917 4850 -16.925912857056 1246.5350341797 2336032.5295822 1375024573.7847
+7	4977611 184966 30957 925029 1.000558461183 19.99704067917 4850 4.3287598007899e-07 0.99999956712402 4646.2666258859 4630.2207952626
+8	5162577 145385 30957 925029 1.000558461183 19.99704067917 4850 0.002869 0.187228 25.015466 0.271678518086
+9	5307962 111951 30958 925030 1.000558461183 19.99704067917 4850 0 2 3337 3395
+10	5419913 116801 30958 925030 1.000558461183 19.99704067917 4850 0 1 49 49
+11	5536714 146984 30958 925030 1.000558461183 19.99704067917 4850 2.2e-05 0.00057 0.466198 6.4932622e-05
+12	5683698 1262 30934 925119 1 20 77 0 2 60 98
+13	5684960 1339 30934 925119 1 20 77 37 88 4887 358263
+14	5686299 2082 30934 925119 1 20 77 3.23589951 249.500335 12168.074059823 2478257.4964778
+15	5688381 1262 30935 925120 1 20 77 0 2 60 98
+16	5689643 2082 30935 925120 1 20 77 3.23589951 249.500335 12168.074059823 2478257.4964778
+

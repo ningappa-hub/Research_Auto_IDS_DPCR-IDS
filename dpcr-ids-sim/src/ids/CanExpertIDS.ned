@@ -9,6 +9,7 @@ simple CanExpertIDS
 {
     parameters:
         string onnxModelPath = default("models/can_student.onnx");
+        string normalizationPath = default("models/can_normalization.json");  // z-score params from training
         double temperature = default(0.95);   // from calibration/can.json
         int windowSize = default(100);
         int stride = default(50);

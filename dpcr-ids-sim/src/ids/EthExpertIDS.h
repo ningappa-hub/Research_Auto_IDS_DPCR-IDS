@@ -42,11 +42,20 @@ private:
 
     long framesProcessed_ = 0;
 
+    // Previous payload tracking for delta channel computation
+    // Mirrors Python: prev_by_protocol (simplified since all frames use same protocol here)
+    std::vector<uint8_t> prevPayload_;
+    bool hasPrevPayload_ = false;
+
     /**
      * Convert raw payload bytes into [3, 32, 32] image tensor.
-     * First 1024 bytes are reshaped; zero-padded if shorter.
+     * Three channels matching Python bytes_to_byte_image():
+     *   Channel 0: value     — byte / 255.0
+     *   Channel 1: delta     — (current - previous) / 255.0, clamped to [-1, 1]
+     *   Channel 2: position  — byte_offset / payload_bytes
      */
-    std::vector<float> payloadToImage(const std::vector<uint8_t>& payload);
+    std::vector<float> payloadToImage(const std::vector<uint8_t>& payload,
+                                       const std::vector<uint8_t>& prevPayload);
 };
 
 } // namespace dpcrids

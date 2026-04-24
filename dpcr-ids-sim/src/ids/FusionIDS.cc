@@ -5,6 +5,8 @@
 #include "../msg/ExpertOutput_m.h"
 #include "../msg/FusionResult_m.h"
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace dpcrids {
 
@@ -28,6 +30,9 @@ void FusionIDS::initialize()
 
     pendingCan_.valid = false;
     pendingEth_.valid = false;
+
+    getDisplayString().setTagArg("t", 0, "Fusion idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 
     EV_INFO << "FusionIDS initialized | model=" << modelPath
             << " | temperature=" << temp
@@ -53,8 +58,12 @@ void FusionIDS::handleMessage(cMessage *msg)
 
     if (protocol == "can") {
         pendingCan_ = data;
+        getDisplayString().setTagArg("t", 0, pendingEth_.valid ? "Fusion ready" : "Fusion wait ETH");
+        getDisplayString().setTagArg("i", 1, "yellow");
     } else if (protocol == "ethernet") {
         pendingEth_ = data;
+        getDisplayString().setTagArg("t", 0, pendingCan_.valid ? "Fusion ready" : "Fusion wait CAN");
+        getDisplayString().setTagArg("i", 1, "yellow");
     } else {
         EV_WARN << "FusionIDS: unknown protocol '" << protocol << "'" << endl;
     }
@@ -83,6 +92,8 @@ void FusionIDS::tryFusion()
         } else {
             pendingEth_.valid = false;
         }
+        getDisplayString().setTagArg("t", 0, "Fusion resync");
+        getDisplayString().setTagArg("i", 1, "orange");
         return;
     }
 
@@ -120,6 +131,19 @@ void FusionIDS::tryFusion()
     emit(fusionLogitSignal_, static_cast<double>(fusionLogit));
     emit(fusionCalProbSignal_, calProb);
     emit(fusionInferenceMsSignal_, inferenceMs);
+
+    const char *color = "orange";
+    if (calProb >= 0.85) {
+        color = "red";
+    } else if (calProb <= 0.15) {
+        color = "green";
+    }
+
+    std::ostringstream status;
+    status << "Fusion p=" << std::fixed << std::setprecision(2) << calProb
+           << " ms=" << std::setprecision(3) << inferenceMs;
+    getDisplayString().setTagArg("t", 0, status.str().c_str());
+    getDisplayString().setTagArg("i", 1, color);
 
     // Build FusionResult and send to Router
     FusionResult *result = new FusionResult("fusionResult");

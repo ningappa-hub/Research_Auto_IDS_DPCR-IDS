@@ -5,7 +5,10 @@
 #include "ConfidenceRouter.h"
 #include "../msg/FusionResult_m.h"
 #include "../msg/AlertMsg_m.h"
+#include <algorithm>
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace dpcrids {
 
@@ -25,6 +28,9 @@ void ConfidenceRouter::initialize()
 
     ASSERT(0.0 <= tauLow_ && tauLow_ <= tauHigh_ && tauHigh_ <= 1.0);
 
+    getDisplayString().setTagArg("t", 0, "Router idle");
+    getDisplayString().setTagArg("i", 1, "gray");
+
     EV_INFO << "ConfidenceRouter initialized | tauLow=" << tauLow_
             << " | tauHigh=" << tauHigh_
             << " | expertOverride=" << (expertOverride_ ? "true" : "false")
@@ -39,11 +45,14 @@ void ConfidenceRouter::handleMessage(cMessage *msg)
 
     double calProb = fusion->getCalibratedProb();
     double rawProb = fusion->getRawProb();
+    double alertRawProb = rawProb;
+    double alertCalProb = calProb;
 
     int decision;    // 0=NORMAL, 1=ATTACK, 2=ESCALATE
     int pathType;    // 0=fast, 1=heavy
     std::string decisionStr;
     std::string pathStr;
+    bool overrideUsed = false;
 
     // Expert-aware override: if BOTH individual experts independently
     // predict NORMAL with high confidence, short-circuit to NORMAL
@@ -53,6 +62,9 @@ void ConfidenceRouter::handleMessage(cMessage *msg)
         double canProb = fusion->getCanRawProb();
         double ethProb = fusion->getEthRawProb();
         if (canProb <= tauLow_ && ethProb <= tauLow_) {
+            double expertMaxProb = std::max(canProb, ethProb);
+            alertRawProb = expertMaxProb;
+            alertCalProb = expertMaxProb;
             decision = 0;
             decisionStr = "NORMAL";
             pathType = 0;
@@ -60,10 +72,12 @@ void ConfidenceRouter::handleMessage(cMessage *msg)
             normalCount_++;
             fastCount_++;
             expertOverrideCount_++;
+            overrideUsed = true;
 
             EV_DEBUG << "Expert override: both experts NORMAL (CAN="
                      << canProb << " ETH=" << ethProb
-                     << ") → overriding fusion calProb=" << calProb << endl;
+                     << ") -> overriding fusion calProb=" << calProb
+                     << " with effective p=" << alertCalProb << endl;
 
             // Skip to alert emission
             goto emitAlert;
@@ -118,12 +132,31 @@ emitAlert:
     emit(pathSignal_, static_cast<long>(pathType));
     emit(latencySignal_, latencyMs);
 
+    const char *color = "orange";
+    if (decisionStr == "ATTACK") {
+        color = "red";
+    } else if (decisionStr == "NORMAL") {
+        color = "green";
+    }
+    if (decisionStr == "ESCALATE") {
+        color = "yellow";
+    }
+
+    std::ostringstream status;
+    status << decisionStr << " " << pathStr
+           << " p=" << std::fixed << std::setprecision(2) << alertCalProb;
+    if (overrideUsed) {
+        status << " override";
+    }
+    getDisplayString().setTagArg("t", 0, status.str().c_str());
+    getDisplayString().setTagArg("i", 1, color);
+
     // Build alert message
     AlertMsg *alert = new AlertMsg("idsAlert");
     alert->setDecision(decisionStr.c_str());
     alert->setPath(pathStr.c_str());
-    alert->setPAttackRaw(rawProb);
-    alert->setPAttackCalibrated(calProb);
+    alert->setPAttackRaw(alertRawProb);
+    alert->setPAttackCalibrated(alertCalProb);
     alert->setLatencyMs(latencyMs);
     alert->setEscalateFlag(decision == 2);
     alert->setTimestamp(simTime());
@@ -133,7 +166,8 @@ emitAlert:
 
     EV_DEBUG << "Route decision=" << decisionStr
              << " | path=" << pathStr
-             << " | calProb=" << calProb << endl;
+             << " | alertCalProb=" << alertCalProb
+             << " | fusionCalProb=" << calProb << endl;
 }
 
 void ConfidenceRouter::finish()

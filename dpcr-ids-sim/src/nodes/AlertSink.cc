@@ -3,6 +3,8 @@
 // --------------------------------------------------------------------------
 #include <omnetpp.h>
 #include <fstream>
+#include <iomanip>
+#include <sstream>
 #include "../msg/AlertMsg_m.h"
 
 using namespace omnetpp;
@@ -40,6 +42,9 @@ void AlertSink::initialize()
         logStream_ << "simtime,decision,path,p_attack_raw,p_attack_calibrated,"
                    << "latency_ms,escalate" << std::endl;
     }
+
+    getDisplayString().setTagArg("t", 0, "Alerts 0");
+    getDisplayString().setTagArg("i", 1, "gray");
 }
 
 void AlertSink::handleMessage(cMessage *msg)
@@ -71,6 +76,19 @@ void AlertSink::handleMessage(cMessage *msg)
     }
 
     totalAlerts_++;
+
+    std::ostringstream status;
+    status << "Alerts n=" << totalAlerts_
+           << " A=" << attackCount_
+           << " E=" << escalateCount_;
+    getDisplayString().setTagArg("t", 0, status.str().c_str());
+    getDisplayString().setTagArg("i", 1,
+        decision == "ATTACK" ? "red" :
+        (decision == "ESCALATE" ? "yellow" : "green"));
+    if (decision == "ATTACK" || decision == "ESCALATE") {
+        bubble(status.str().c_str());
+    }
+
     delete msg;
 }
 

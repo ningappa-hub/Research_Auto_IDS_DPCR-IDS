@@ -3,6 +3,7 @@
 // --------------------------------------------------------------------------
 #include <omnetpp.h>
 #include "../msg/EthFrameMsg_m.h"
+#include <sstream>
 
 using namespace omnetpp;
 
@@ -29,6 +30,9 @@ void EthTrafficGen::initialize()
 
     sendTimer_ = new cMessage("ethSendTimer");
     scheduleAt(simTime() + sendInterval_, sendTimer_);
+
+    getDisplayString().setTagArg("t", 0, "ETH ECU idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 }
 
 void EthTrafficGen::handleMessage(cMessage *msg)
@@ -61,6 +65,13 @@ void EthTrafficGen::handleMessage(cMessage *msg)
 
     send(frame, "ethOut");
     framesSent_++;
+
+    if (framesSent_ % 100 == 0) {
+        std::ostringstream status;
+        status << "ETH ECU tx=" << framesSent_;
+        getDisplayString().setTagArg("t", 0, status.str().c_str());
+        getDisplayString().setTagArg("i", 1, "blue");
+    }
 
     double jitter = uniform(-sendInterval_ * 0.05, sendInterval_ * 0.05);
     scheduleAt(simTime() + sendInterval_ + jitter, sendTimer_);

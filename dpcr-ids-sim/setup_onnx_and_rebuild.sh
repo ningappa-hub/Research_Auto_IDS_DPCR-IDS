@@ -2,12 +2,12 @@
 # ===========================================================================
 # setup_onnx_and_rebuild.sh — Rebuild with real ONNX Runtime models
 # ONNX Runtime already downloaded to project directory.
-# Run inside opp_env: bash /c/ResearchAutoIDS/dpcr-ids-sim/setup_onnx_and_rebuild.sh
+# Run inside opp_env: bash ./setup_onnx_and_rebuild.sh
 # ===========================================================================
 
 set -e
 
-PROJECT="/c/ResearchAutoIDS/dpcr-ids-sim"
+PROJECT="$(cd "$(dirname "$0")" && pwd)"
 ONNX_DIR="$PROJECT/onnxruntime-linux-x64-1.17.0"
 
 echo "============================================"

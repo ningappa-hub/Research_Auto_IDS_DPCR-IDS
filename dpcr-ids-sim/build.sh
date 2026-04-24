@@ -52,7 +52,7 @@ if ! command -v opp_makemake &>/dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}OMNeT++ found: $(opp_makemake --version 2>&1 | head -1)${NC}"
+echo -e "${GREEN}OMNeT++ found: $(command -v opp_makemake)${NC}"
 
 # --- Build ONNX flags ---
 EXTRA_CFLAGS=""
@@ -89,7 +89,6 @@ opp_makemake -f --deep \
     -O out \
     -o dpcr-ids-sim \
     $EXTRA_INCLUDES \
-    --msg6 \
     -X out
 
 # --- Inject custom CFLAGS/LDFLAGS into generated Makefile ---
@@ -121,8 +120,7 @@ fi
 
 echo ""
 echo "To run:"
-echo "  cd $SIM_DIR"
-echo "  opp_run -n ../src:. -l ../src/out/gcc-release/src/libdpcr-ids-sim omnetpp.ini"
+echo "  bash $PROJECT_DIR/run.sh General 10s"
 echo ""
 echo "Or with Qtenv GUI:"
-echo "  opp_run -n ../src:. -l ../src/out/gcc-release/src/libdpcr-ids-sim omnetpp.ini -u Qtenv"
+echo "  bash $PROJECT_DIR/run_visual.sh MultiAttack 25s"

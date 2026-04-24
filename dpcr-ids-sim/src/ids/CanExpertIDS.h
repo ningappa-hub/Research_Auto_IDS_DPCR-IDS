@@ -37,6 +37,7 @@ private:
     // intermediate layer for embedding)
     std::unique_ptr<OnnxInference> onnxModel_;
     TemperatureScaler scaler_;
+    ZScoreParams zscore_;
 
     // Windowing
     std::vector<CanFrame> frameBuffer_;

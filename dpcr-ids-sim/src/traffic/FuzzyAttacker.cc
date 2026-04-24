@@ -34,12 +34,17 @@ void FuzzyAttacker::initialize()
 
     attackTimer_ = new cMessage("fuzzyAttackTimer");
     scheduleAt(simTime() + attackStartTime_, attackTimer_);
+
+    getDisplayString().setTagArg("t", 0, "Fuzzy idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 }
 
 void FuzzyAttacker::handleMessage(cMessage *msg)
 {
     if (msg == stopTimer_) {
         attacking_ = false;
+        getDisplayString().setTagArg("t", 0, "Fuzzy stopped");
+        getDisplayString().setTagArg("i", 1, "gray");
         cancelAndDelete(stopTimer_);
         stopTimer_ = nullptr;
         cancelAndDelete(attackTimer_);
@@ -54,6 +59,9 @@ void FuzzyAttacker::handleMessage(cMessage *msg)
             attacking_ = true;
             stopTimer_ = new cMessage("fuzzyStopTimer");
             scheduleAt(simTime() + attackDuration_, stopTimer_);
+            getDisplayString().setTagArg("t", 0, "Fuzzy ACTIVE");
+            getDisplayString().setTagArg("i", 1, "yellow");
+            bubble("Fuzzy attack active");
             EV_INFO << "Fuzzy attack STARTED at t=" << simTime() << endl;
         }
 

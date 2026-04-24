@@ -6,6 +6,8 @@
 #include "../msg/ExpertOutput_m.h"
 #include <chrono>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 namespace dpcrids {
 
@@ -28,6 +30,9 @@ void EthExpertIDS::initialize()
     calProbSignal_     = registerSignal("ethCalProb");
     inferenceMsSignal_ = registerSignal("ethInferenceMs");
 
+    getDisplayString().setTagArg("t", 0, "ETH idle");
+    getDisplayString().setTagArg("i", 1, "gray");
+
     EV_INFO << "EthExpertIDS initialized | model=" << modelPath
             << " | temperature=" << temp << endl;
 }
@@ -47,8 +52,16 @@ void EthExpertIDS::handleMessage(cMessage *msg)
 
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    // Convert payload → [3, 32, 32] image tensor
-    std::vector<float> imageTensor = payloadToImage(payload);
+    // Convert payload → [3, 32, 32] image tensor matching Python pipeline
+    std::vector<uint8_t> prevForDelta;
+    if (hasPrevPayload_) {
+        prevForDelta = prevPayload_;
+    }
+    std::vector<float> imageTensor = payloadToImage(payload, prevForDelta);
+
+    // Update previous payload state
+    prevPayload_ = payload;
+    hasPrevPayload_ = true;
 
     // Run ONNX inference
     std::vector<int64_t> inputShape = {1, inChannels_, frameHeight_, frameWidth_};
@@ -66,6 +79,19 @@ void EthExpertIDS::handleMessage(cMessage *msg)
     emit(logitSignal_, static_cast<double>(logit));
     emit(calProbSignal_, calProb);
     emit(inferenceMsSignal_, inferenceMs);
+
+    const char *color = "orange";
+    if (calProb >= 0.85) {
+        color = "red";
+    } else if (calProb <= 0.15) {
+        color = "green";
+    }
+
+    std::ostringstream status;
+    status << "ETH p=" << std::fixed << std::setprecision(2) << calProb
+           << " ms=" << std::setprecision(3) << inferenceMs;
+    getDisplayString().setTagArg("t", 0, status.str().c_str());
+    getDisplayString().setTagArg("i", 1, color);
 
     // Build expert output
     ExpertOutput *expertMsg = new ExpertOutput("ethExpert");
@@ -85,26 +111,49 @@ void EthExpertIDS::handleMessage(cMessage *msg)
     framesProcessed_++;
 }
 
-std::vector<float> EthExpertIDS::payloadToImage(const std::vector<uint8_t>& payload)
+std::vector<float> EthExpertIDS::payloadToImage(const std::vector<uint8_t>& payload,
+                                                  const std::vector<uint8_t>& prevPayload)
 {
     int totalPixels = inChannels_ * frameHeight_ * frameWidth_;
     std::vector<float> image(totalPixels, 0.0f);
 
-    // Map payload bytes into [3, 32, 32] tensor
-    // Each channel gets payloadBytes_/3 consecutive bytes, normalized to [0, 1]
-    int bytesPerChannel = frameHeight_ * frameWidth_;  // 32*32 = 1024
-    int payloadLen = static_cast<int>(payload.size());
+    // Pad payload to payloadBytes_
+    std::vector<uint8_t> padded(payloadBytes_, 0);
+    int copyLen = std::min(static_cast<int>(payload.size()), payloadBytes_);
+    for (int i = 0; i < copyLen; i++) {
+        padded[i] = payload[i];
+    }
 
-    for (int c = 0; c < inChannels_; c++) {
-        for (int h = 0; h < frameHeight_; h++) {
-            for (int w = 0; w < frameWidth_; w++) {
-                int byteIdx = c * bytesPerChannel + h * frameWidth_ + w;
-                int tensorIdx = c * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
-                if (byteIdx < payloadLen) {
-                    image[tensorIdx] = static_cast<float>(payload[byteIdx]) / 255.0f;
-                }
-                // else zero-padded (already initialized to 0)
-            }
+    // Pad previous payload to payloadBytes_
+    std::vector<uint8_t> paddedPrev(payloadBytes_, 0);
+    int prevCopyLen = std::min(static_cast<int>(prevPayload.size()), payloadBytes_);
+    for (int i = 0; i < prevCopyLen; i++) {
+        paddedPrev[i] = prevPayload[i];
+    }
+
+    // Build 3-channel image matching Python bytes_to_byte_image():
+    //   Channel 0: value    — byte / 255.0
+    //   Channel 1: delta    — clamp((current - previous) / 255.0, -1, 1)
+    //   Channel 2: position — offset / payloadBytes_
+    for (int h = 0; h < frameHeight_; h++) {
+        for (int w = 0; w < frameWidth_; w++) {
+            int byteIdx = h * frameWidth_ + w;
+
+            float currentVal = static_cast<float>(padded[byteIdx]);
+            float prevVal    = static_cast<float>(paddedPrev[byteIdx]);
+
+            // Channel 0: value
+            int ch0Idx = 0 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
+            image[ch0Idx] = currentVal / 255.0f;
+
+            // Channel 1: delta (clamped to [-1, 1])
+            int ch1Idx = 1 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
+            float delta = (currentVal - prevVal) / 255.0f;
+            image[ch1Idx] = std::max(-1.0f, std::min(1.0f, delta));
+
+            // Channel 2: position
+            int ch2Idx = 2 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
+            image[ch2Idx] = static_cast<float>(byteIdx) / static_cast<float>(payloadBytes_);
         }
     }
 

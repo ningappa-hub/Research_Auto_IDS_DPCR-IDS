@@ -5,6 +5,8 @@
 #include "../msg/CanFrameMsg_m.h"
 #include "../msg/ExpertOutput_m.h"
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace dpcrids {
 
@@ -23,10 +25,17 @@ void CanExpertIDS::initialize()
     double temp = par("temperature").doubleValue();
     scaler_ = TemperatureScaler(temp);
 
+    // Load z-score normalization parameters from training QA report
+    std::string normPath = par("normalizationPath").stdstringValue();
+    zscore_ = ZScoreParams::loadFromFile(normPath);
+
     // Register statistics signals
     logitSignal_       = registerSignal("canLogit");
     calProbSignal_     = registerSignal("canCalProb");
     inferenceMsSignal_ = registerSignal("canInferenceMs");
+
+    getDisplayString().setTagArg("t", 0, "CAN idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 
     EV_INFO << "CanExpertIDS initialized | model=" << modelPath
             << " | temperature=" << temp
@@ -75,7 +84,7 @@ void CanExpertIDS::processWindow(const std::vector<CanFrame>& window)
     auto startTime = std::chrono::high_resolution_clock::now();
 
     // Step 1: Extract features → [16, windowSize] flat vector
-    std::vector<float> features = FeatureExtractor::extractWindow(window);
+    std::vector<float> features = FeatureExtractor::extractWindowNormalized(window, zscore_);
 
     // Step 2: Run ONNX inference → logit + embedding
     // The ONNX model input shape is [1, 16, 100] (batch, channels, sequence)
@@ -100,6 +109,19 @@ void CanExpertIDS::processWindow(const std::vector<CanFrame>& window)
     emit(logitSignal_, static_cast<double>(logit));
     emit(calProbSignal_, calProb);
     emit(inferenceMsSignal_, inferenceMs);
+
+    const char *color = "orange";
+    if (calProb >= 0.85) {
+        color = "red";
+    } else if (calProb <= 0.15) {
+        color = "green";
+    }
+
+    std::ostringstream status;
+    status << "CAN p=" << std::fixed << std::setprecision(2) << calProb
+           << " ms=" << std::setprecision(3) << inferenceMs;
+    getDisplayString().setTagArg("t", 0, status.str().c_str());
+    getDisplayString().setTagArg("i", 1, color);
 
     // Step 3: Build ExpertOutput message → send to FusionIDS
     ExpertOutput *expertMsg = new ExpertOutput("canExpert");

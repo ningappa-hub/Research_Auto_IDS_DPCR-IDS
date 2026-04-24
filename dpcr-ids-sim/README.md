@@ -82,6 +82,93 @@ make run-scale
 make run-all
 ```
 
+## Visual Simulation Mode
+
+The standard `make run` path still uses `Cmdenv` for reproducible batch runs. For a live ECU/IDS view, use Qtenv:
+
+```bash
+# Run this from the dpcr-ids-sim project directory, not from the OMNeT++ install directory.
+
+# If the executable is already built:
+# Recommended visual demo: sequential attacks plus live IDS routing states
+bash ./run_visual.sh MultiAttack 25s
+
+# Or build if needed and then launch Qtenv:
+bash ./visual_quickstart.sh MultiAttack 25s
+
+# Makefile shortcuts:
+make run-visual
+make visual-quickstart
+```
+
+In Qtenv, the topology shows CAN ECUs, Ethernet ECUs, attackers, bus hubs, the gateway IDS experts, fusion, router, aggregator, and alert sink. Module labels and icon colors update at runtime:
+
+- Green means high-confidence normal or normal traffic flow.
+- Red means attack/high-risk state.
+- Yellow/orange means uncertain, waiting, resync, or escalation state.
+- Gray means idle or stopped.
+
+After a batch or visual run, generate an HTML dashboard from existing alert CSV logs:
+
+```bash
+bash ./generate_visual_dashboard.sh
+
+# Output:
+# simulations/results/visual_dashboard.html
+```
+
+The dashboard is read-only with respect to simulation results: it parses `simulations/results/ids_alerts_*.csv` and writes a separate HTML report.
+
+If the dashboard shows attack scenarios with `Total=0`, those CSVs contain only headers. Re-run the target scenario, or clear stale alert CSVs before generating a fresh dashboard:
+
+```bash
+rm -f simulations/results/ids_alerts_*.csv
+bash ./visual_quickstart.sh MultiAttack 25s
+bash ./generate_visual_dashboard.sh
+```
+
+If a row is flagged `check p/decision`, the CSV contains NORMAL decisions with high reported attack probability. Rebuild after the latest router patch so expert-override NORMAL decisions log the effective routed probability instead of the overridden fusion score.
+
+Qtenv opens in a paused state. If you close Qtenv before clicking Run/Fast/Express, OMNeT++ can still create `.vec` files with only vector declarations and CSV files with only headers. That means no traffic was processed. For a non-visual sanity check before Qtenv:
+
+```bash
+rm -f simulations/results/ids_alerts_fuzzy.csv simulations/results/Fuzzy-*.*
+bash ./run.sh Fuzzy 25s
+wc -l simulations/results/ids_alerts_fuzzy.csv
+```
+
+The CSV should contain more than one line after a completed run. One line means header only.
+
+### Common OMNeT++ Shell Mistake
+
+If your terminal prompt already starts with `omnetpp-6.3.0:`, you are already inside the OMNeT++ environment. Do not run `opp_env shell` again from that prompt.
+
+If you see:
+
+```text
+cd: dpcr-ids-sim: No such file or directory
+```
+
+then you are not in the directory that contains the DPCR-IDS simulation project. Locate it first:
+
+```bash
+find ~/default_workspace /c /cygdrive/c /mnt/c -maxdepth 5 -type d -name dpcr-ids-sim 2>/dev/null
+```
+
+Then `cd` to the path that command prints. Examples:
+
+```bash
+cd /c/ResearchAutoIDS/dpcr-ids-sim
+# or
+cd /cygdrive/c/ResearchAutoIDS/dpcr-ids-sim
+# or, only in WSL
+cd /mnt/c/ResearchAutoIDS/dpcr-ids-sim
+# or
+cd ~/default_workspace/dpcr-ids-sim
+```
+
+Do not run plain `make` from `~/default_workspace/omnetpp-6.3.0`; that rebuilds OMNeT++ itself, not this simulation.
+
 ## Simulation Configurations
 
 | Config | Description | Attack | Duration |

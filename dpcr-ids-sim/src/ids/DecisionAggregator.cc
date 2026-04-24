@@ -4,6 +4,8 @@
 // --------------------------------------------------------------------------
 #include "DecisionAggregator.h"
 #include "../msg/AlertMsg_m.h"
+#include <iomanip>
+#include <sstream>
 
 namespace dpcrids {
 
@@ -29,6 +31,9 @@ void DecisionAggregator::initialize()
     // Schedule periodic flush timer (every bucketMs)
     flushTimer_ = new cMessage("flushTimer");
     scheduleAt(simTime() + SimTime(bucketMs_, SIMTIME_MS), flushTimer_);
+
+    getDisplayString().setTagArg("t", 0, "Agg idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 
     EV_INFO << "DecisionAggregator initialized | bucketMs=" << bucketMs_
             << " | failOpen=" << failOpen_ << endl;
@@ -63,6 +68,13 @@ void DecisionAggregator::handleMessage(cMessage *msg)
     int64_t bucketId = computeBucketId(entry.timestamp);
     buckets_[bucketId].push_back(entry);
     totalAlerts_++;
+
+    std::ostringstream queuedStatus;
+    queuedStatus << "Agg queued=" << totalAlerts_;
+    getDisplayString().setTagArg("t", 0, queuedStatus.str().c_str());
+    getDisplayString().setTagArg("i", 1,
+        entry.decision == "ATTACK" ? "red" :
+        (entry.decision == "ESCALATE" ? "yellow" : "green"));
 
     delete msg;
 }
@@ -125,6 +137,19 @@ void DecisionAggregator::flushBuckets(simtime_t upTo)
 
             send(gwAlert, "gatewayOut");
             totalFlushed_++;
+
+            std::ostringstream status;
+            status << "Gateway " << merged.decision
+                   << " n=" << it->second.size()
+                   << " p=" << std::fixed << std::setprecision(2)
+                   << merged.pAttackCalibrated;
+            getDisplayString().setTagArg("t", 0, status.str().c_str());
+            getDisplayString().setTagArg("i", 1,
+                merged.decision == "ATTACK" ? "red" :
+                (merged.decision == "ESCALATE" ? "yellow" : "green"));
+            if (merged.decision == "ATTACK" || merged.decision == "ESCALATE") {
+                bubble(status.str().c_str());
+            }
 
             it = buckets_.erase(it);
         } else {

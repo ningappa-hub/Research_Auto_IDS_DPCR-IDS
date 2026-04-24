@@ -38,6 +38,9 @@ void DosAttacker::initialize()
     attackTimer_ = new cMessage("dosAttackTimer");
     scheduleAt(simTime() + attackStartTime_, attackTimer_);
 
+    getDisplayString().setTagArg("t", 0, "DoS idle");
+    getDisplayString().setTagArg("i", 1, "gray");
+
     EV_INFO << "DosAttacker scheduled: start=" << attackStartTime_
             << "s duration=" << attackDuration_
             << "s interval=" << attackInterval_ << "s" << endl;
@@ -47,6 +50,8 @@ void DosAttacker::handleMessage(cMessage *msg)
 {
     if (msg == stopTimer_) {
         attacking_ = false;
+        getDisplayString().setTagArg("t", 0, "DoS stopped");
+        getDisplayString().setTagArg("i", 1, "gray");
         EV_INFO << "DoS attack stopped after " << attackFramesSent_
                 << " frames." << endl;
         cancelAndDelete(stopTimer_);
@@ -62,6 +67,9 @@ void DosAttacker::handleMessage(cMessage *msg)
             attacking_ = true;
             stopTimer_ = new cMessage("dosStopTimer");
             scheduleAt(simTime() + attackDuration_, stopTimer_);
+            getDisplayString().setTagArg("t", 0, "DoS ACTIVE");
+            getDisplayString().setTagArg("i", 1, "red");
+            bubble("DoS attack active");
             EV_INFO << "DoS attack STARTED at t=" << simTime() << endl;
         }
 

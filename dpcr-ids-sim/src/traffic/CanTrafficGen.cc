@@ -4,6 +4,7 @@
 #include <omnetpp.h>
 #include "../msg/CanFrameMsg_m.h"
 #include <cstdlib>
+#include <sstream>
 
 using namespace omnetpp;
 
@@ -34,6 +35,9 @@ void CanTrafficGen::initialize()
 
     sendTimer_ = new cMessage("canSendTimer");
     scheduleAt(simTime() + sendInterval_, sendTimer_);
+
+    getDisplayString().setTagArg("t", 0, "CAN ECU idle");
+    getDisplayString().setTagArg("i", 1, "gray");
 }
 
 void CanTrafficGen::handleMessage(cMessage *msg)
@@ -67,6 +71,13 @@ void CanTrafficGen::handleMessage(cMessage *msg)
     send(frame, "canOut");
     framesSent_++;
     currentIdIndex_++;
+
+    if (framesSent_ % 100 == 0) {
+        std::ostringstream status;
+        status << "CAN ECU tx=" << framesSent_;
+        getDisplayString().setTagArg("t", 0, status.str().c_str());
+        getDisplayString().setTagArg("i", 1, "green");
+    }
 
     // Reschedule with slight jitter for realism
     double jitter = uniform(-sendInterval_ * 0.1, sendInterval_ * 0.1);
