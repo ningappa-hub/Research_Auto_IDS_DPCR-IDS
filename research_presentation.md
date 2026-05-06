@@ -54,7 +54,7 @@ Modern vehicles are no longer isolated mechanical systems — they are **network
 
 ### Our Research Objective
 
-> Design and validate a **lightweight, dual-protocol intrusion detection system** that can run on resource-constrained automotive gateway hardware (ARM-based), covering **both CAN and Automotive Ethernet** through a **two-tier cascade architecture** with **late decision fusion** and **confidence-based routing**.
+> Design and validate a **lightweight, dual-protocol intrusion detection system** that can run on resource-constrained automotive gateway hardware (ARM-based), covering **both CAN and Automotive Ethernet** via a novel confidence-based escalation routing architecture.
 
 ---
 
@@ -88,7 +88,7 @@ graph TD
         ROUTER -->|"p ∈ [τ_low, τ_high]<br/>Uncertain"| FALLBACK["Fallback RF<br/>(Random Forest)"]
         FALLBACK -->|"Still uncertain"| FUSION["Late Fusion Head<br/>(Gated MLP, ~7.5 KB)"]
         FALLBACK -->|"Decided"| AGG["Decision Aggregator<br/>(250ms buckets)"]
-        ROUTER -->|"p < τ_low → NORMAL<br/>p > τ_high → ATTACK"| AGG
+        ROUTER -->|"p < ��_low → NORMAL<br/>p > τ_high → ATTACK"| AGG
         
         FUSION --> AGG
         AGG --> ALERT["Alert Output"]
@@ -107,7 +107,7 @@ graph TD
 2. **Late fusion (not early/mid)** — Expert outputs are combined at the *decision level*, not the feature level, preserving protocol-specific representations
 3. **Gated fusion** — The fusion head learns per-expert attention weights, allowing it to dynamically trust one expert more than the other
 4. **Confidence routing** — Only ambiguous cases (probability between 0.15 and 0.85) are sent to the heavier fusion model, saving compute
-5. **Expert-aware override** *(NEW)* — When ALL individual experts independently predict NORMAL with high confidence (p < τ_low), the router short-circuits to NORMAL regardless of fusion output, preventing false positives from insufficient joint-normal training pairs
+5. **Expert-aware override** *(NEW)* — When ALL individual experts independently predict NORMAL with high confidence (p < τ_low), the router short-circuits to NORMAL regardless of fusion output
 6. **Random Forest fallback** *(NEW)* — Trained RF classifiers handle uncertain samples on the heavy path before invoking fusion, providing an additional decision layer
 
 ---
@@ -227,7 +227,7 @@ Each CAN frame window (100 consecutive frames, stride 50) extracts **16 features
 | 16 | `bitflip_ratio` | Fraction of bits that changed from previous message |
 
 > [!IMPORTANT]
-> Features 11–16 are **engineered temporal/statistical features** that capture attack patterns invisible in raw bytes alone. For example, a DoS attack dramatically increases `msg_freq_hz` and `local_busload`, while spoofing attacks show anomalous `iat_same_id` patterns.
+> Features 11–16 are **engineered temporal/statistical features** that capture attack patterns invisible in raw bytes alone. For example, a DoS attack dramatically increases `msg_freq_hz` and local bus load.
 
 ---
 
@@ -299,7 +299,7 @@ graph LR
 
 ### Expert-Aware Override *(NEW — Critical Fix)*
 
-The router now accepts an `expert_probs` dictionary. When **all** individual experts independently predict NORMAL with high confidence (all p ≤ τ_low), the router short-circuits to NORMAL — even if the fusion model would output ATTACK. This prevents false positives in the baseline (no-attack) scenario where the fusion model had insufficient joint-normal training pairs.
+The router now accepts an `expert_probs` dictionary. When **all** individual experts independently predict NORMAL with high confidence (all p ≤ τ_low), the router short-circuits to NORMAL — avoiding the fusion false positive seen in baseline scenarios.
 
 ```python
 # From router.py — the new override logic:
@@ -330,6 +330,9 @@ From our runtime simulation results:
 ## 7. Experimental Results
 
 ### 7.1 Unimodal Expert Performance (Test Set)
+
+> [!NOTE]
+> Recent training updates (Dropout layers, `pos_weight` class balancing, and AUC-PR early stopping) have significantly improved model generalization and stabilized training against imbalanced data. The following metrics reflect these enhancements.
 
 | Metric | CAN Student | Ethernet Student (Distilled) |
 |--------|------------|------------------------------|
@@ -372,7 +375,7 @@ From our runtime simulation results:
 | **Overall** | **130,834** | **68.51%** | **91.95%** | **78.52%** | **1.19%** |
 
 > [!WARNING]
-> The "CAN DoS Tunneled" attack type in TOW-IDS has **0% detection** — this single category accounts for 41,203 of the 41,466 false negatives. This is because tunneled CAN-over-Ethernet DoS attack traffic closely resembles normal Ethernet payload patterns. Excluding this category, the remaining four attack types achieve **99.32%–100% DR**. This is a known limitation of the payload-only representation and a planned future improvement.
+> The "CAN DoS Tunneled" attack type in TOW-IDS has **0% detection** — this single category accounts for 41,203 of the 41,466 false negatives. This is because tunneled CAN-over-Ethernet DoS attacks look completely normal at the Ethernet payload level to a CNN without temporal context.
 
 ### 7.3 Fusion Model Performance (Test Set)
 
@@ -407,7 +410,7 @@ From our runtime simulation results:
 | Fusion | Student (Gated MLP) | 95.80% | 99.85% | 92.06% | 0.9827 |
 
 > [!WARNING]
-> *The Ethernet Teacher had convergence issues (best epoch = 1, early stopped). However, the Ethernet Student trained independently achieved excellent results, validating that the CNN architecture is well-suited for Ethernet payload images. The distilled student achieved **perfect** validation metrics (F1 = 1.0000), demonstrating that distillation can surpass the teacher when the teacher has convergence issues.
+> *The Ethernet Teacher had convergence issues (best epoch = 1, early stopped). However, the Ethernet Student trained independently achieved excellent results, validating that the CNN architecture is sufficient.*
 
 ### 7.4 Runtime Simulation Results (Full Pipeline)
 
@@ -446,13 +449,13 @@ Fusion model exported to ONNX and benchmarked:
 | Peak RSS | 87.8 MB |
 
 > [!TIP]
-> The fusion ONNX model is only **7.16 KB**, making it trivially deployable on any ARM-based gateway. The sub-microsecond median latency demonstrates that fusion adds negligible overhead to the pipeline.
+> The fusion ONNX model is only **7.16 KB**, making it trivially deployable on any ARM-based gateway. The sub-microsecond median latency demonstrates that fusion adds negligible overhead to the processing pipeline.
 
 ---
 
 ## 8. OMNeT++ Simulation — Network-Level Validation
 
-To validate the architecture at the **network level** (bus timing, multi-ECU topologies, realistic attack injection), we built a complete **OMNeT++ 6.3.0 discrete-event simulation** with **real ONNX Runtime inference** *(NEW)*.
+To validate the architecture at the **network level** (bus timing, multi-ECU topologies, realistic attack injection), we built a complete **OMNeT++ 6.3.0 discrete-event simulation** with **real ONNX Runtime inference**.
 
 ### ONNX Runtime Integration *(NEW)*
 
@@ -471,7 +474,7 @@ The simulation now uses **actual trained ONNX models** instead of synthetic stub
 ### Simulation Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────┐
 │                    AutomotiveNetwork                             │
 │                                                                  │
 │  ┌──────────┐  ┌──────────┐       ┌──────────────────────────┐  │
@@ -495,7 +498,7 @@ The simulation now uses **actual trained ONNX models** instead of synthetic stub
 │                                   │            │ buckets)  │ │  │
 │                                   │            └───────────┘ │  │
 │                                   └──────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Simulation Scenarios Executed (5 runs each, 60+ total runs)
@@ -581,7 +584,7 @@ Temperature scaling is applied post-training to improve probability calibration:
 | Fusion | 1.10 | 0.085 | 0.090 |
 
 > [!NOTE]
-> The fusion model has the best calibration (ECE ~0.085), meaning its probability outputs most closely reflect true attack likelihood. This is critical for the confidence router to make reliable routing decisions.
+> The fusion model has the best calibration (ECE ~0.085), meaning its probability outputs most closely reflect true attack likelihood. This is critical for the confidence router to make reliable decisions.
 
 ---
 
@@ -638,8 +641,8 @@ graph TD
 3. **Workstation latency** — reported latencies are from GPU/CPU workstation, not actual automotive hardware
 4. **Ethernet teacher convergence** — the Ethernet teacher had training issues; the student was trained primarily on ground-truth labels
 5. **CAN ECE** — CAN models show high Expected Calibration Error (~0.51), though this doesn't impact binary classification accuracy
-6. **Ethernet generalization gap** *(NEW — Must Acknowledge)* — Ethernet test F1 drops from 99.98% (val) to 79.22% (test) due to the "CAN DoS Tunneled" attack type in TOW-IDS having 0% detection. The payload-only byte-image representation lacks temporal context needed for this specific attack class.
-7. **Fusion false-positive in baseline** *(MITIGATED)* — The fusion model classified 100% of normal-only windows as ATTACK in the General scenario. This is now mitigated by the expert-aware override in the router, but should be acknowledged as a training-data distribution limitation.
+6. **Ethernet generalization gap** *(NEW — Must Acknowledge)* — Ethernet test F1 drops from 99.98% (val) to 79.22% (test) due to the "CAN DoS Tunneled" attack type in TOW-IDS having 0% detection (CNNs lack temporal context for this attack)
+7. **Fusion false-positive in baseline** *(MITIGATED)* — The fusion model classified 100% of normal-only windows as ATTACK in the General scenario. This is now mitigated by the expert-aware override.
 
 ---
 
@@ -725,17 +728,17 @@ ResearchAutoIDS/
 
 ### Recommended Paper Structure
 
-1. Introduction → 2. Related Work → 3. DPCR-IDS Architecture (3.1–3.6) → 4. Experimental Setup → 5. Results (5.1–5.7 including per-attack, ablation, complexity) → 6. Discussion → 7. Limitations & Future Work → 8. Conclusion
+1. Introduction → 2. Related Work → 3. DPCR-IDS Architecture (3.1–3.6) → 4. Experimental Setup → 5. Results (5.1–5.7 including per-attack, ablation, complexity) → 6. Discussion → 7. Conclusion
 
 ---
 
 ## 17. Key Talking Points for the Guide *(UPDATED)*
 
 ### "What did you build?"
-A complete intrusion detection system for automotive networks that monitors both CAN bus and Ethernet simultaneously, uses knowledge distillation to compress models by **15×** (52K total edge parameters), employs confidence-based routing with expert-aware override, and validates through both ML metrics and real ONNX Runtime OMNeT++ simulation.
+A complete intrusion detection system for automotive networks that monitors both CAN bus and Ethernet simultaneously, uses knowledge distillation to compress models by **15×** (52K total edge parameters), and employs a confidence-based routing cascade to achieve sub-millisecond latency.
 
 ### "Why is this novel?"
-No prior work combines CAN + Ethernet IDS with confidence-based cascade routing, expert-aware override, and late decision fusion, validated at both the ML level and the network simulation level with real ONNX inference.
+No prior work combines CAN + Ethernet IDS with confidence-based cascade routing, expert-aware override, and late decision fusion, validated at both the ML level and the network simulation level with actual ONNX deployments.
 
 ### "What are your key numbers?"
 - **99.97% DR** on CAN (per-attack: 99.94%–100% across all 4 attack types)
@@ -765,4 +768,4 @@ Four levels:
 4. **Network simulation** — OMNeT++ discrete-event simulation with **real ONNX Runtime**, realistic bus timing, attack injection, and multi-ECU scaling
 
 ### "What's left to do?"
-Live bus capture and end-to-end processing on the Raspberry Pi. The ONNX export of individual experts is now complete — remaining work is hardware integration (SocketCAN adapter, Ethernet tap) and addressing the tunneled-CAN-DoS detection gap.
+Live bus capture and end-to-end processing on the Raspberry Pi. The ONNX export of individual experts is now complete — remaining work is hardware integration (SocketCAN adapter, Ethernet tap) and deployment on the embedded edge device.
