@@ -375,7 +375,8 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
                 device=device,
             )
             val_report = evaluate_predictions(val_labels, val_probs)
-            val_metric = float(val_report.get("auc_pr", val_report.get("f1", 0.0)))
+            auc_pr = val_report.get("auc_pr")
+            val_metric = float(auc_pr if auc_pr is not None else val_report.get("f1", 0.0))
             if val_metric > best_metric + 1e-12:
                 best_metric = val_metric
                 best_epoch = epoch + 1

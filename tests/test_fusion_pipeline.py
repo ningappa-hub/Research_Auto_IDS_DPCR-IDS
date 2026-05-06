@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import tempfile
@@ -22,7 +22,7 @@ class FusionPipelineTests(unittest.TestCase):
         return [[base + (channel * 0.01) for _ in range(100)] for channel in range(16)]
 
     def _eth_features(self, base: float) -> list[list[list[float]]]:
-        return [[[base + (channel * 0.01) for _ in range(32)] for _ in range(32)] for channel in range(3)]
+        return [[[base + (channel * 0.01) for _ in range(32)] for _ in range(32)] for channel in range(4)]
 
     def _write_jsonl(self, path: Path, rows: list[dict]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

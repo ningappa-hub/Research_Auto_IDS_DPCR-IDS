@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import tempfile
 import unittest
@@ -112,14 +112,14 @@ class EthernetDataTests(unittest.TestCase):
             self.assertFalse(report["qa"]["surrogate_only"])
             self.assertEqual(report["qa"]["storage_mode"], "streamed_jsonl")
             self.assertEqual(report["qa"]["totals"], {"train": 2, "val": 2, "test": 2})
-            self.assertEqual(report["manifests"]["train"]["feature_shape"], [3, 4, 4])
+            self.assertEqual(report["manifests"]["train"]["feature_shape"], [4, 4, 4])
             self.assertEqual(report["manifests"]["test"]["labels"], {"0": 1, "1": 1})
 
     def test_byte_image_encoding_shape(self) -> None:
         payload = bytes([0, 255, 10, 20])
         prev = bytes([0, 0, 5, 10])
         image = bytes_to_byte_image(payload, prev_payload=prev, payload_bytes=16, frame_height=4, frame_width=4)
-        self.assertEqual(len(image), 3)
+        self.assertEqual(len(image), 4)
         self.assertEqual(len(image[0]), 4)
         self.assertEqual(len(image[0][0]), 4)
         self.assertAlmostEqual(image[0][0][1], 1.0)
