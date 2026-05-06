@@ -1,0 +1,125 @@
+file 6392195 1778064222                                         
+version 3
+run MultiAttack-1-20260506-10:43:36-1944
+attr configname MultiAttack
+attr datetime 20260506-10:43:36
+attr datetimef 20260506-104336
+attr experiment MultiAttack
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network dpcrids.AutomotiveNetwork
+attr processid 1944
+attr repetition 1
+attr replication #1
+attr resultdir results
+attr runnumber 1
+attr seedset 1
+config sim-time-limit 25s
+config description "Combined DoS + Fuzzy + Spoof attack"
+config extends General
+config *.enableDos true
+config *.enableFuzzy true
+config *.enableSpoof true
+config *.dosAttacker.attackStartTime 3s
+config *.dosAttacker.attackDuration 5s
+config *.fuzzyAttacker.attackStartTime 8s
+config *.fuzzyAttacker.attackDuration 5s
+config *.spoofAttacker.attackStartTime 14s
+config *.spoofAttacker.attackDuration 5s
+config *.spoofAttacker.spoofType "\"gear\""
+config *.alertSink.logFile "\"results/ids_alerts_multi.csv\""
+config sim-time-limit 25s
+config network dpcrids.AutomotiveNetwork
+config sim-time-limit 30s
+config warmup-period 1s
+config repeat 5
+config seed-set 1
+config *.numSensorECUs 5
+config *.numAdasECUs 2
+config *.enableDos false
+config *.enableFuzzy false
+config *.enableSpoof false
+config *.sensor[*].sendInterval 2ms
+config *.sensor[*].numCanIds 10
+config *.sensor[*].payloadLength 8
+config *.adas[*].sendInterval 1ms
+config *.adas[*].payloadLength 512
+config *.gateway.canExpert.onnxModelPath "\"models/can_student.onnx\""
+config *.gateway.canExpert.normalizationPath "\"models/can_normalization.json\""
+config *.gateway.canExpert.temperature 0.95
+config *.gateway.canExpert.windowSize 100
+config *.gateway.canExpert.stride 50
+config *.gateway.ethExpert.onnxModelPath "\"models/eth_student.onnx\""
+config *.gateway.ethExpert.temperature 0.5
+config *.gateway.fusion.onnxModelPath "\"models/fusion_student.onnx\""
+config *.gateway.fusion.temperature 1.1
+config *.gateway.fusion.bucketMs 250
+config *.gateway.router.tauLow 0.15
+config *.gateway.router.tauHigh 0.85
+config *.gateway.router.fallbackUncertaintyLow 0.3
+config *.gateway.router.fallbackUncertaintyHigh 0.7
+config *.gateway.aggregator.bucketMs 250
+config *.gateway.aggregator.failOpen true
+config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
+config output-vector-file results/MultiAttack-1.vec
+config output-scalar-file results/MultiAttack-1.sca
+config eventlog-file results/MultiAttack-1.elog
+
+vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
+attr recordingmode vector
+vector 1 AutomotiveNetwork.gateway.canExpert canCalProb:vector ETV
+attr recordingmode vector
+vector 2 AutomotiveNetwork.gateway.canExpert canInferenceMs:vector ETV
+attr recordingmode vector
+vector 3 AutomotiveNetwork.gateway.ethExpert ethLogit:vector ETV
+attr recordingmode vector
+vector 4 AutomotiveNetwork.gateway.ethExpert ethCalProb:vector ETV
+attr recordingmode vector
+vector 5 AutomotiveNetwork.gateway.ethExpert ethInferenceMs:vector ETV
+attr recordingmode vector
+vector 6 AutomotiveNetwork.gateway.fusion fusionLogit:vector ETV
+attr recordingmode vector
+vector 7 AutomotiveNetwork.gateway.fusion fusionCalProb:vector ETV
+attr recordingmode vector
+vector 8 AutomotiveNetwork.gateway.fusion fusionInferenceMs:vector ETV
+attr recordingmode vector
+vector 9 AutomotiveNetwork.gateway.router routeDecision:vector ETV
+attr recordingmode vector
+vector 10 AutomotiveNetwork.gateway.router routePath:vector ETV
+attr recordingmode vector
+vector 11 AutomotiveNetwork.gateway.router routingLatencyMs:vector ETV
+attr recordingmode vector
+vector 12 AutomotiveNetwork.gateway.aggregator aggregatedDecision:vector ETV
+attr recordingmode vector
+vector 13 AutomotiveNetwork.gateway.aggregator bucketSize:vector ETV
+attr recordingmode vector
+vector 14 AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:vector ETV
+attr recordingmode vector
+vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
+attr recordingmode vector
+vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
+attr recordingmode vector
+3	4034 1344815 15640 460880 1.000330420519 17.385142643588 32768 -13.100671768188 5.3903779983521 -197627.74827228 1312778.7634517
+4	1348849 1440221 15640 460880 1.000330420519 17.385142643588 32768 4.1773521110135e-12 0.9999792045593 87.465302496549 54.367970342399
+5	2789070 1082518 15640 460880 1.000330420519 17.385142643588 32768 0.074322 0.714288 2795.834106 261.10549527529
+0	3871588 87713 15672 582494 1.002357502837 24.995177488698 2450 3.4349780082703 19.476795196533 25110.305067539 279361.64381231
+1	3959301 90203 15672 582494 1.002357502837 24.995177488698 2450 0.97380815778385 0.99999995718667 2447.5476555491 2445.1215890064
+2	4049504 70574 15672 582494 1.002357502837 24.995177488698 2450 0.072617 0.555147 236.476425 25.674444033325
+3	4120078 636250 460896 582569 17.386050752701 24.999923975741 15230 -10.577700614929 1.3607864379883 -86043.940535948 520243.03475984
+4	4756328 681186 460896 582569 17.386050752701 24.999923975741 15230 6.4912148386593e-10 0.93828767222497 11.944927657669 4.2810475659492
+5	5437514 514449 460896 582569 17.386050752701 24.999923975741 15230 0.074342 0.559155 1270.300232 112.3768288439
+6	5951963 87738 15673 582495 1.002357502837 24.995177488698 2450 2.3427324295044 8.6951198577881 9204.0252940655 36357.666011182
+7	6039701 90201 15673 582495 1.002357502837 24.995177488698 2450 0.89376191395997 0.99963111417165 2353.1359568302 2261.4477444341
+8	6129902 70565 15673 582495 1.002357502837 24.995177488698 2450 0.002923 0.071522 14.76669 0.14092718015
+9	6200467 53694 15674 582496 1.002357502837 24.995177488698 2450 1 1 2450 2450
+10	6254161 56144 15674 582496 1.002357502837 24.995177488698 2450 0 0 0 0
+11	6310305 71794 15674 582496 1.002357502837 24.995177488698 2450 2.3e-05 0.000595 0.299907 5.0264591e-05
+12	6382099 1598 15630 582571 1 25 97 1 1 97 97
+13	6383697 1695 15630 582571 1 25 97 12 63 2462 98538
+14	6385392 2602 15630 582571 1 25 97 3.000098 244.900103 12585.711839415 2278167.1633429
+15	6387994 1598 15631 582572 1 25 97 1 1 97 97
+16	6389592 2602 15631 582572 1 25 97 3.000098 244.900103 12585.711839415 2278167.1633429
+

@@ -1,35 +1,35 @@
+file 5113040 1778064260                                         
 version 3
-run DoS-0-20260506-08:14:31-775
-attr configname DoS
-attr datetime 20260506-08:14:31
-attr datetimef 20260506-081431
-attr experiment DoS
+run BusLoadLow-3-20260506-10:44:15-1946
+attr configname BusLoadLow
+attr datetime 20260506-10:44:15
+attr datetimef 20260506-104415
+attr experiment BusLoadLow
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 775
-attr repetition 0
-attr replication #0
+attr processid 1946
+attr repetition 3
+attr replication #3
 attr resultdir results
-attr runnumber 0
-attr seedset 0
+attr runnumber 3
+attr seedset 3
 config sim-time-limit 20s
-config description "DoS flood attack on CAN bus"
+config description "Low bus load (~20%) — 2 sensor ECUs"
 config extends General
+config *.numSensorECUs 2
 config *.enableDos true
-config *.dosAttacker.attackInterval 0.1ms
 config *.dosAttacker.attackStartTime 5s
 config *.dosAttacker.attackDuration 10s
-config *.dosAttacker.targetCanId 0x000
-config *.alertSink.logFile "\"results/ids_alerts_dos.csv\""
+config *.alertSink.logFile "\"results/ids_alerts_busload_low.csv\""
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
 config repeat 5
-config seed-set 0
+config seed-set 3
 config *.numSensorECUs 5
 config *.numAdasECUs 2
 config *.enableDos false
@@ -57,9 +57,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/DoS-0.vec
-config output-scalar-file results/DoS-0.sca
-config eventlog-file results/DoS-0.elog
+config output-vector-file results/BusLoadLow-3.vec
+config output-scalar-file results/BusLoadLow-3.sca
+config eventlog-file results/BusLoadLow-3.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector
@@ -95,4 +95,24 @@ vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
 attr recordingmode vector
 vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
 attr recordingmode vector
+3	3773 1340828 11052 498366 1.000147524138 17.380004654985 32768 -12.042211532593 3.7635214328766 -198145.08073832 1290312.648868
+4	1344601 1437380 11052 498366 1.000147524138 17.380004654985 32768 3.4695085570354e-11 0.99946196182804 47.71348801895 19.999842983574
+5	2781981 1078651 11052 498366 1.000147524138 17.380004654985 32768 0.07434 0.576192 2709.918313 238.28479919943
+0	3860632 81752 11082 526884 1.002893959192 19.956190242023 2380 -9.1812877655029 10.854384422302 -15246.709642053 101181.68287283
+1	3942384 87559 11082 526884 1.002893959192 19.956190242023 2380 6.3493251542223e-05 0.99998908834119 8.8463344422496 2.0264573388822
+2	4029943 62730 11082 526884 1.002893959192 19.956190242023 2380 0.068963 0.307322 192.302871 16.606914842905
+3	4092673 219006 498370 527367 17.381031638503 19.9999542896 5242 -8.311541557312 1.836853146553 -24000.309979528 115105.46266139
+4	4311679 233977 498370 527367 17.381031638503 19.9999542896 5242 6.035131047993e-08 0.97524608783432 13.333928862155 7.1221208839997
+5	4545656 177021 498370 527367 17.381031638503 19.9999542896 5242 0.078495 0.645556 434.623701 38.090557255127
+6	4722677 79386 11083 526885 1.002893959192 19.956190242023 2380 3.1879632472992 31.996765136719 55728.330055475 1348365.1551824
+7	4802063 82027 11083 526885 1.002893959192 19.956190242023 2380 0.94775483011647 0.99999956712402 2379.8835803823 2379.7699957446
+8	4884090 62765 11083 526885 1.002893959192 19.956190242023 2380 0.002932 0.045453 10.969991 0.068503086861
+9	4946855 46337 11084 526886 1.002893959192 19.956190242023 2380 0 1 3 3
+10	4993192 48717 11084 526886 1.002893959192 19.956190242023 2380 0 0 0 0
+11	5041909 63304 11084 526886 1.002893959192 19.956190242023 2380 2.3e-05 0.000748 0.231293 3.0082323e-05
+12	5105213 1250 11048 527369 1 20 77 0 1 2 2
+13	5106463 1290 11048 527369 1 20 77 5 56 2385 121929
+14	5107753 2018 11048 527369 1 20 77 0.500253 249.700158 9798.441566016 1639903.9367268
+15	5109771 1250 11049 527370 1 20 77 0 1 2 2
+16	5111021 2018 11049 527370 1 20 77 0.500253 249.700158 9798.441566016 1639903.9367268
 

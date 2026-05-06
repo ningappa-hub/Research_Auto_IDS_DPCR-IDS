@@ -1,0 +1,120 @@
+file 4818129 1778064181                                         
+version 3
+run GearSpoof-3-20260506-10:42:56-1940
+attr configname GearSpoof
+attr datetime 20260506-10:42:56
+attr datetimef 20260506-104256
+attr experiment GearSpoof
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network dpcrids.AutomotiveNetwork
+attr processid 1940
+attr repetition 3
+attr replication #3
+attr resultdir results
+attr runnumber 3
+attr seedset 3
+config sim-time-limit 20s
+config description "Gear masquerade spoofing attack"
+config extends General
+config *.enableSpoof true
+config *.spoofAttacker.attackInterval 2ms
+config *.spoofAttacker.attackStartTime 5s
+config *.spoofAttacker.attackDuration 10s
+config *.spoofAttacker.spoofCanId 0x316
+config *.spoofAttacker.spoofType "\"gear\""
+config *.alertSink.logFile "\"results/ids_alerts_gear_spoof.csv\""
+config network dpcrids.AutomotiveNetwork
+config sim-time-limit 30s
+config warmup-period 1s
+config repeat 5
+config seed-set 3
+config *.numSensorECUs 5
+config *.numAdasECUs 2
+config *.enableDos false
+config *.enableFuzzy false
+config *.enableSpoof false
+config *.sensor[*].sendInterval 2ms
+config *.sensor[*].numCanIds 10
+config *.sensor[*].payloadLength 8
+config *.adas[*].sendInterval 1ms
+config *.adas[*].payloadLength 512
+config *.gateway.canExpert.onnxModelPath "\"models/can_student.onnx\""
+config *.gateway.canExpert.normalizationPath "\"models/can_normalization.json\""
+config *.gateway.canExpert.temperature 0.95
+config *.gateway.canExpert.windowSize 100
+config *.gateway.canExpert.stride 50
+config *.gateway.ethExpert.onnxModelPath "\"models/eth_student.onnx\""
+config *.gateway.ethExpert.temperature 0.5
+config *.gateway.fusion.onnxModelPath "\"models/fusion_student.onnx\""
+config *.gateway.fusion.temperature 1.1
+config *.gateway.fusion.bucketMs 250
+config *.gateway.router.tauLow 0.15
+config *.gateway.router.tauHigh 0.85
+config *.gateway.router.fallbackUncertaintyLow 0.3
+config *.gateway.router.fallbackUncertaintyHigh 0.7
+config *.gateway.aggregator.bucketMs 250
+config *.gateway.aggregator.failOpen true
+config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
+config output-vector-file results/GearSpoof-3.vec
+config output-scalar-file results/GearSpoof-3.sca
+config eventlog-file results/GearSpoof-3.elog
+
+vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
+attr recordingmode vector
+vector 1 AutomotiveNetwork.gateway.canExpert canCalProb:vector ETV
+attr recordingmode vector
+vector 2 AutomotiveNetwork.gateway.canExpert canInferenceMs:vector ETV
+attr recordingmode vector
+vector 3 AutomotiveNetwork.gateway.ethExpert ethLogit:vector ETV
+attr recordingmode vector
+vector 4 AutomotiveNetwork.gateway.ethExpert ethCalProb:vector ETV
+attr recordingmode vector
+vector 5 AutomotiveNetwork.gateway.ethExpert ethInferenceMs:vector ETV
+attr recordingmode vector
+vector 6 AutomotiveNetwork.gateway.fusion fusionLogit:vector ETV
+attr recordingmode vector
+vector 7 AutomotiveNetwork.gateway.fusion fusionCalProb:vector ETV
+attr recordingmode vector
+vector 8 AutomotiveNetwork.gateway.fusion fusionInferenceMs:vector ETV
+attr recordingmode vector
+vector 9 AutomotiveNetwork.gateway.router routeDecision:vector ETV
+attr recordingmode vector
+vector 10 AutomotiveNetwork.gateway.router routePath:vector ETV
+attr recordingmode vector
+vector 11 AutomotiveNetwork.gateway.router routingLatencyMs:vector ETV
+attr recordingmode vector
+vector 12 AutomotiveNetwork.gateway.aggregator aggregatedDecision:vector ETV
+attr recordingmode vector
+vector 13 AutomotiveNetwork.gateway.aggregator bucketSize:vector ETV
+attr recordingmode vector
+vector 14 AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:vector ETV
+attr recordingmode vector
+vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
+attr recordingmode vector
+vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
+attr recordingmode vector
+3	3867 1340373 15657 287541 1.000449764033 17.389072909265 32768 -12.500424385071 1.725376367569 -184942.01895301 1120675.2563926
+4	1344240 1435979 15657 287541 1.000449764033 17.389072909265 32768 1.3876161193788e-11 0.96925358088589 51.44205904143 19.708309170247
+5	2780219 1078145 15657 287541 1.000449764033 17.389072909265 32768 0.074416 0.642897 2780.176923 253.89394141641
+0	3858364 41131 15961 328393 1.02011784028 19.996655436045 1050 3.6579113006592 10.860461235046 7425.981061697 55068.954011571
+1	3899495 42190 15961 328393 1.02011784028 19.996655436045 1050 0.97917248673829 0.99998915791568 1047.8446209428 1045.7064104613
+2	3941685 33785 15961 328393 1.02011784028 19.996655436045 1050 0.084446 0.479364 109.720245 12.566677221881
+3	3975470 218347 287545 328444 17.389287089502 19.99966792806 5225 -10.980309486389 0.79197138547897 -33777.530463338 229566.73704602
+4	4193817 233813 287545 328444 17.389287089502 19.99966792806 5225 2.9015119316409e-10 0.82976218592792 2.2234748724471 0.77398702423556
+5	4427630 176521 287545 328444 17.389287089502 19.99966792806 5225 0.078625 0.49212 446.440203 41.070628438247
+6	4604151 41137 15962 328394 1.02011784028 19.996655436045 1050 2.3028178215027 6.4019365310669 4045.2006413937 16363.368863992
+7	4645288 42171 15962 328394 1.02011784028 19.996655436045 1050 0.89026694837469 0.99704100525704 1010.7677190619 973.64146920817
+8	4687459 33805 15962 328394 1.02011784028 19.996655436045 1050 0.004191 0.071717 7.735493 0.072896685273
+9	4721264 26558 15963 328395 1.02011784028 19.996655436045 1050 1 1 1050 1050
+10	4747822 27608 15963 328395 1.02011784028 19.996655436045 1050 0 0 0 0
+11	4775430 34626 15963 328395 1.02011784028 19.996655436045 1050 8.4e-05 0.00054 0.156672 2.8420998e-05
+12	4810056 1249 15650 328446 1 20 77 1 1 77 77
+13	4811305 1326 15650 328446 1 20 77 12 16 1063 14811
+14	4812631 2124 15650 328446 1 20 77 8.376369752 248.563116333 10221.490744333 1761687.2917698
+15	4814755 1249 15651 328447 1 20 77 1 1 77 77
+16	4816004 2124 15651 328447 1 20 77 8.376369752 248.563116333 10221.490744333 1761687.2917698
+

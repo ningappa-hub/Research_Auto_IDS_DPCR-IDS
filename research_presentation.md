@@ -19,7 +19,7 @@
 | 7 | **Comprehensive Test Suite** — 11 unit tests covering data, fusion, metrics, routing, training, benchmark, and replay | 🟢 Code quality |
 | 8 | **Research Readiness Assessment** — Full audit identifying strengths, critical issues, and action priorities for paper submission | 🟢 Planning |
 | 9 | **15 Publication-Quality Figures** — Up from 7, now includes per-attack timelines for all scenarios and updated routing/latency charts | 🟢 Enhancement |
-| 10 | **Exact Parameter Counts** — Total edge deployment: **52,469 parameters** (CAN: 22,977 + ETH: 28,033 + Fusion: 1,459) | 🟢 Precision |
+| 10 | **Exact Parameter Counts** — Total edge deployment: **52,757 parameters** (CAN: 22,977 + ETH: 28,321 + Fusion: 1,459) | 🟢 Precision |
 | 11 | **Data Leakage & Generalization Fixes** — Mitigated dataset-specific memorization by applying temporal context requirements and revising dataset windowing/splits. | 🔴 Critical fix |
 | 12 | **Training Regularization** — Added Dropout layers to the CNN student and class-balanced weighting (`pos_weight`) to mitigate severe overfitting. | 🔴 Critical fix |
 | 13 | **Early Stopping Transition** — Shifted model early stopping criteria from validation F1-score to AUC-PR to increase stability against imbalanced data. | 🟡 Major enhancement |
@@ -77,7 +77,7 @@ graph TD
 
     subgraph "Gateway ECU (IDS)"
         CAN --> FE_CAN["CAN Feature Extractor<br/>Window: 100 frames, Stride: 50<br/>16 features per frame"]
-        ETH --> FE_ETH["Ethernet Feature Extractor<br/>Payload → 32×32 image<br/>3 channels"]
+        ETH --> FE_ETH["Ethernet Feature Extractor<br/>Payload → 32×32 image<br/>4 channels"]
         
         FE_CAN --> CAN_S["CAN Student<br/>(TCN, ~103 KB)"]
         FE_ETH --> ETH_S["Ethernet Student<br/>(CNN, ~117 KB)"]
@@ -133,8 +133,8 @@ Teachers are large Transformer-based models used purely to generate soft labels 
 |----------|-------|
 | Architecture | Vision Transformer (patch-based) |
 | Parameters | ~3.2M |
-| Input | `(batch, 3, 32, 32)` — payload image |
-| Patch embedding | Conv2d(3→128, k=4, s=4) |
+| Input | `(batch, 4, 32, 32)` — payload image |
+| Patch embedding | Conv2d(4→128, k=4, s=4) |
 | d_model | 128, nhead=8, layers=4 |
 | File size | 3.2 MB (`.pt`) |
 
@@ -159,13 +159,14 @@ Students are lightweight models distilled from teachers. These are what actually
 | Property | Value |
 |----------|-------|
 | Architecture | Lightweight 2D CNN |
-| Parameters | **28,033** |
-| Input | `(batch, 3, 32, 32)` |
+| Parameters | **28,321** |
+| Input | `(batch, 4, 32, 32)` |
 | Layers | Conv2d→BN→ReLU→Pool (×2) |
-| Channels | 3 → 32 → 64 |
+| Channels | 4 → 32 → 64 |
 | Output | 128-d embedding + 1 logit |
-| Checkpoint size | **117.1 KB** (`.pt`) |
+| Checkpoint size | **118.2 KB** (`.pt`) |
 | ONNX size (dual-output) | **110.8 KB** |
+| Regularization | Dropout `p=0.5` before projection and classifier |
 
 #### Fusion Head — `TinyLateFusionMetaModel`
 | Property | Value |
@@ -185,14 +186,14 @@ Students are lightweight models distilled from teachers. These are what actually
 | CAN Student (TCN) | 22,977 | 22,977 | 94.5 | 103.6 |
 | CAN Teacher (Transformer) | 795,393 | 795,393 | — | 3,126.1 |
 | CAN Distilled (TCN) | 22,977 | 22,977 | — | 104.0 |
-| ETH Student (CNN) | 28,033 | 28,033 | 110.8 | 117.1 |
-| ETH Teacher (Transformer) | 799,489 | 799,489 | — | 3,142.5 |
-| ETH Distilled (CNN) | 28,033 | 28,033 | — | 117.4 |
+| ETH Student (CNN) | 28,321 | 28,321 | 110.8 | 118.2 |
+| ETH Teacher (Transformer) | 801,537 | 801,537 | — | 3,150.5 |
+| ETH Distilled (CNN) | 28,321 | 28,321 | — | 118.5 |
 | Fusion Head (Gated MLP) | 1,459 | 1,459 | 7.3 | 9.5 |
-| **Total Edge Deployment** | **52,469** | **52,469** | **~212** | **~230** |
+| **Total Edge Deployment** | **52,757** | **52,757** | **~212** | **~231** |
 
 > [!TIP]
-> The total edge deployment uses only **52,469 parameters** — roughly **30× smaller** than a single teacher model (795K–799K params). This validates the knowledge distillation approach.
+> The total edge deployment uses only **52,757 parameters** — roughly **15× smaller** than a single teacher and about **30× smaller** than the two teachers combined. This validates the distillation strategy.
 
 ### Knowledge Distillation
 
@@ -207,6 +208,8 @@ L_total = α × L_distill(student_logits, teacher_soft_labels, T) + (1 − α) �
 | α (distillation weight) | 0.5 |
 | T (temperature) | 4.0 |
 | Early stopping patience | 10 epochs |
+
+For direct student training, the pipeline now applies class-balanced `BCEWithLogitsLoss(pos_weight=neg/pos)` and selects the best checkpoint by **validation AUC-PR** rather than validation F1. This was added to stabilize model selection under class imbalance.
 
 ---
 
@@ -315,15 +318,15 @@ Uncertain samples (in the heavy-path zone) are first passed to a **Random Forest
 | Protocol | RF Model | Uncertain Samples | Training Data |
 |---------|---------|-------------------|---------------|
 | CAN | `can_rf.pkl` (333 KB) | 469 samples | Embeddings from uncertain region |
-| Ethernet | `ethernet_rf.pkl` (653 KB) | 65,458 samples | Embeddings from uncertain region |
+| Ethernet | `ethernet_rf.pkl` (653 KB) | 13,070 samples | Embeddings from uncertain region |
 
 ### Why This Matters
 
-From our runtime simulation results:
-- **CAN**: Only **0.26%** of samples (102 out of 38,539) needed escalation to the fusion model
-- **Ethernet**: **0%** escalation — the student was confident on every sample
-- **OMNeT++ Simulation**: 99.3% fast-path decisions in the MultiAttack scenario (2,481/2,499)
-- This means **>99.7%** of decisions are made by the lightweight student alone, with the fusion head only invoked for truly ambiguous cases
+From the current runtime replay artifacts:
+- **CAN**: 102 of 38,539 samples entered the heavy path, and only **6** reached final escalation
+- **Ethernet**: 13,644 of 791,611 samples entered the heavy path, and **2,288** reached final escalation
+- **Fusion replay**: the fusion model itself used the fast path on **94.3%** of paired buckets
+- This keeps the fusion tier reserved for a small minority of ambiguous cases rather than the common path
 
 ---
 
@@ -363,7 +366,7 @@ From our runtime simulation results:
 
 | Attack Type | Support | DR (Recall) | Precision | F1 | FPR |
 |---|---|---|---|---|---|
-| CAN DoS Tunneled | 41,203 | **0.0%** ❌ | — | — | 0.0% |
+| CAN DoS Tunneled | 41,203 | **3.13%** ❌ | 100.0% | 6.07% | 0.0% |
 | CAN Replay Tunneled | 29,847 | 99.32% | 100.0% | 99.66% | 0.0% |
 | Frame Injection | 16,962 | 99.99% | 100.0% | 100.0% | 0.0% |
 | MAC Flooding | 16,809 | 99.65% | 100.0% | 99.83% | 0.0% |
@@ -372,7 +375,7 @@ From our runtime simulation results:
 | **Overall** | **130,834** | **68.51%** | **91.95%** | **78.52%** | **1.19%** |
 
 > [!WARNING]
-> The "CAN DoS Tunneled" attack type in TOW-IDS has **0% detection** — this single category accounts for 41,203 of the 41,466 false negatives. This is because tunneled CAN-over-Ethernet DoS attack traffic closely resembles normal Ethernet payload patterns. Excluding this category, the remaining four attack types achieve **99.32%–100% DR**. This is a known limitation of the payload-only representation and a planned future improvement.
+> The "CAN DoS Tunneled" attack type in TOW-IDS remains the dominant Ethernet failure mode, with only **3.13% DR** in the latest per-attack artifact. Excluding this category, the remaining four Ethernet attack types achieve **99.90%–100% DR**. This is a known limitation of the payload-image representation and motivates adding temporal or protocol-context features on the Ethernet branch.
 
 ### 7.3 Fusion Model Performance (Test Set)
 
@@ -401,13 +404,13 @@ From our runtime simulation results:
 | CAN | Teacher (Transformer) | 99.98% | 100.0% | 99.96% | 1.0000 |
 | CAN | Student (TCN) | 99.98% | 100.0% | 99.97% | 1.0000 |
 | CAN | Distilled (TCN) | 99.85% | 99.95% | 99.75% | 1.0000 |
-| Ethernet | Teacher (ViT) | 0.0%* | 0.0%* | 0.0%* | 0.8405 |
+| Ethernet | Teacher (ViT) | 0.01%* | 5.77%* | 0.00%* | 0.9990 |
 | Ethernet | Student (CNN) | 99.98% | 99.97% | 100.0% | 0.9999 |
 | Ethernet | Distilled (CNN) | **100.0%** | 100.0% | 100.0% | **1.0000** |
 | Fusion | Student (Gated MLP) | 95.80% | 99.85% | 92.06% | 0.9827 |
 
 > [!WARNING]
-> *The Ethernet Teacher had convergence issues (best epoch = 1, early stopped). However, the Ethernet Student trained independently achieved excellent results, validating that the CNN architecture is well-suited for Ethernet payload images. The distilled student achieved **perfect** validation metrics (F1 = 1.0000), demonstrating that distillation can surpass the teacher when the teacher has convergence issues.
+> *The Ethernet teacher had convergence issues (`best_epoch = 1`, early stopped). The latest distilled Ethernet student still materially improves over the raw student on validation (`F1 = 99.37%`, `AUC-PR = 0.9991`) despite the weak teacher.*
 
 ### 7.4 Runtime Simulation Results (Full Pipeline)
 
@@ -415,20 +418,20 @@ End-to-end results with confidence routing, calibration, and fallback:
 
 | Metric | CAN Pipeline | Ethernet Pipeline | Fusion Pipeline |
 |--------|-------------|-------------------|-----------------|
-| **F1** | 99.92% | 100.0% | 100.0% |
-| **DR** | 99.87% | 100.0% | 100.0% |
-| **FPR** | 0.041% | 0.0% | 0.0% |
-| **Routing Ratio** | 0.26% | 0.0% | 83.7% |
-| **Escalations** | 6 | 0 | 623 |
-| **Deadline Misses** | 1 (of 38,539) | 0 (of 18,600) | 0 (of 744) |
+| **F1** | 99.92% | 78.41% | 96.16% |
+| **DR** | 99.87% | 68.74% | 95.15% |
+| **FPR** | 0.041% | 1.30% | 9.54% |
+| **Routing Ratio** | 0.26% | 1.72% | 5.71% |
+| **Escalations** | 6 | 2,288 | 88 |
+| **Deadline Misses** | 1 (of 38,539) | 0 (of 791,611) | 0 (of 1,542) |
 
 ### 7.5 Latency Performance
 
 | Protocol | p50 (ms) | p95 (ms) | p99 (ms) | Mean (ms) |
 |---------|----------|----------|----------|-----------|
-| **CAN E2E** | 0.974 | 1.072 | 1.884 | 1.004 |
-| **Ethernet E2E** | 0.593 | 0.662 | 1.101 | 0.607 |
-| **Fusion E2E** | 0.333 | 0.401 | 0.784 | 0.346 |
+| **CAN E2E** | 0.954 | 1.134 | 2.051 | 0.997 |
+| **Ethernet E2E** | 0.631 | 1.100 | 3.636 | 0.721 |
+| **Fusion E2E** | 0.323 | 0.429 | 0.772 | 0.341 |
 
 > All latencies are well within the **20 ms deadline** budget typical for gateway ECU processing.
 
@@ -439,11 +442,11 @@ Fusion model exported to ONNX and benchmarked:
 | Metric | Value |
 |--------|-------|
 | ONNX model size | **7.16 KB** |
-| p50 latency | 0.0106 ms |
-| p95 latency | 0.0133 ms |
-| p99 latency | 0.0351 ms |
-| Mean latency | 0.0142 ms |
-| Peak RSS | 87.8 MB |
+| p50 latency | 0.0098 ms |
+| p95 latency | 0.0108 ms |
+| p99 latency | 0.0183 ms |
+| Mean latency | 0.0105 ms |
+| Peak RSS | 57.1 MB |
 
 > [!TIP]
 > The fusion ONNX model is only **7.16 KB**, making it trivially deployable on any ARM-based gateway. The sub-microsecond median latency demonstrates that fusion adds negligible overhead to the pipeline.
@@ -466,7 +469,7 @@ The simulation now uses **actual trained ONNX models** instead of synthetic stub
 
 - **ONNX Runtime 1.17.0** (C++ shared library) linked via `setup_onnx_and_rebuild.sh`
 - Dual-output ONNX export (`export_onnx_for_omnetpp.py`) produces both logit and embedding per expert
-- Temperature scaling applied within the C++ IDS modules using calibrated temperatures (CAN: 0.95, ETH: 0.50, Fusion: 1.10)
+- Temperature scaling applied within the C++ IDS modules using the current calibrated temperatures (CAN: 0.95, ETH: 0.75, Fusion: 1.00)
 
 ### Simulation Architecture
 
@@ -560,13 +563,15 @@ The simulation produced **15 publication-quality figures** *(up from 7)* validat
 
 ### ONNX Replay Results (Desktop Smoke Test)
 
+The latest `fusion_replay.json` artifact now shows exact parity with the saved desktop baseline across F1, recall, precision, FPR, and ECE. The ONNX replay path is no longer diverging from the PyTorch evaluation.
+
 | Metric | ONNX Replay | Desktop Baseline | Delta |
 |--------|-------------|------------------|-------|
-| F1 | 100.0% | 94.76% | +5.24% |
-| Recall | 100.0% | 93.06% | +6.94% |
-| Precision | 100.0% | 96.53% | +3.47% |
-| FPR | 0.0% | 11.56% | −11.56% |
-| ECE | 0.0036 | 0.164 | −0.160 |
+| F1 | 95.98% | 95.98% | +0.00% |
+| Recall | 92.89% | 92.89% | +0.00% |
+| Precision | 99.29% | 99.29% | +0.00% |
+| FPR | 2.31% | 2.31% | +0.00% |
+| ECE | 0.2086 | 0.2086 | +0.0000 |
 
 ---
 
@@ -577,11 +582,11 @@ Temperature scaling is applied post-training to improve probability calibration:
 | Protocol | Temperature | ECE Before | ECE After |
 |----------|-------------|------------|-----------|
 | CAN | 0.95 | 0.510 | 0.510 |
-| Ethernet | 0.50 | 0.843 | 0.838 |
-| Fusion | 1.10 | 0.085 | 0.090 |
+| Ethernet | 0.75 | 0.688 | 0.692 |
+| Fusion | 1.00 | 0.060 | 0.060 |
 
 > [!NOTE]
-> The fusion model has the best calibration (ECE ~0.085), meaning its probability outputs most closely reflect true attack likelihood. This is critical for the confidence router to make reliable routing decisions.
+> The fusion model remains the best-calibrated branch (`ECE ≈ 0.060`). CAN and Ethernet temperature scaling currently provide little improvement, so the calibration stage should be treated as neutral bookkeeping rather than a headline gain for those two branches.
 
 ---
 
@@ -593,7 +598,7 @@ graph TD
     B --> C["Teacher Training<br/>CAN Transformer<br/>ETH Vision Transformer"]
     C --> D["Student Training<br/>CAN TCN<br/>ETH CNN"]
     D --> E["Knowledge Distillation<br/>α=0.5, T=4.0"]
-    E --> F["Temperature Calibration<br/>Post-training Platt scaling"]
+    E --> F["Temperature Calibration<br/>Post-training temperature scaling"]
     F --> FB["Fallback RF Training<br/>Random Forest on<br/>uncertain embeddings"]
     FB --> G["Fusion Training<br/>Late fusion on paired buckets<br/>(250ms windows)"]
     G --> H["Runtime Simulation<br/>Full pipeline with routing,<br/>fallback, and aggregation"]
@@ -616,10 +621,10 @@ graph TD
 | # | Contribution |
 |---|-------------|
 | 1 | **First dual-protocol IDS** covering CAN + Automotive Ethernet with a unified decision framework |
-| 2 | **Two-tier cascade** with teacher→student distillation achieving **52,469 total edge parameters** — a **15× compression** from teachers (1.6M combined) |
-| 3 | **Confidence-based routing with expert-aware override** that sends only 0.26% of CAN samples to the fusion tier, reducing compute by >99% |
+| 2 | **Two-tier cascade** with teacher→student distillation achieving **52,757 total edge parameters** — about **30× smaller** than the two teachers combined |
+| 3 | **Confidence-based routing with expert-aware override** that keeps final fusion escalation to **6 CAN samples** and **2,288 Ethernet samples** on the current runtime replay |
 | 4 | **Late decision fusion** with learned per-expert gating, preserving protocol-specific representations |
-| 5 | **Sub-millisecond edge inference** — CAN: 0.096ms, ETH: 0.078ms, Fusion: 0.005ms mean latency |
+| 5 | **Sub-millisecond workstation replay latency** — CAN: 0.997ms E2E mean, ETH: 0.721ms, Fusion: 0.341ms |
 | 6 | **OMNeT++ network simulation with real ONNX Runtime** — 12 configurations, 60+ runs with actual trained model inference |
 | 7 | **Edge-deployable** — complete ONNX pipeline demonstrated on Raspberry Pi 5 with sub-20ms deadline compliance |
 | 8 | **Per-attack-type evaluation** *(NEW)* — CAN achieves ≥99.94% DR across all 4 attack types; ETH reveals tunneled-CAN-DoS blind spot as a publishable finding |
@@ -638,7 +643,7 @@ graph TD
 3. **Workstation latency** — reported latencies are from GPU/CPU workstation, not actual automotive hardware
 4. **Ethernet teacher convergence** — the Ethernet teacher had training issues; the student was trained primarily on ground-truth labels
 5. **CAN ECE** — CAN models show high Expected Calibration Error (~0.51), though this doesn't impact binary classification accuracy
-6. **Ethernet generalization gap** *(NEW — Must Acknowledge)* — Ethernet test F1 drops from 99.98% (val) to 79.22% (test) due to the "CAN DoS Tunneled" attack type in TOW-IDS having 0% detection. The payload-only byte-image representation lacks temporal context needed for this specific attack class.
+6. **Ethernet generalization gap** *(NEW — Must Acknowledge)* — Ethernet test F1 still drops sharply from strong validation performance to weaker test performance because `can_dos_tunneled` remains poorly detected (`3.13%` DR in the latest per-attack artifact). The payload-only image representation lacks the temporal and protocol context needed for this class.
 7. **Fusion false-positive in baseline** *(MITIGATED)* — The fusion model classified 100% of normal-only windows as ATTACK in the General scenario. This is now mitigated by the expert-aware override in the router, but should be acknowledged as a training-data distribution limitation.
 
 ---
@@ -732,17 +737,17 @@ ResearchAutoIDS/
 ## 17. Key Talking Points for the Guide *(UPDATED)*
 
 ### "What did you build?"
-A complete intrusion detection system for automotive networks that monitors both CAN bus and Ethernet simultaneously, uses knowledge distillation to compress models by **15×** (52K total edge parameters), employs confidence-based routing with expert-aware override, and validates through both ML metrics and real ONNX Runtime OMNeT++ simulation.
+A complete intrusion detection system for automotive networks that monitors both CAN bus and Ethernet simultaneously, uses knowledge distillation to compress the deployed stack to **52,757 parameters**, employs confidence-based routing with expert-aware override, and validates through both ML metrics and real ONNX Runtime OMNeT++ simulation.
 
 ### "Why is this novel?"
 No prior work combines CAN + Ethernet IDS with confidence-based cascade routing, expert-aware override, and late decision fusion, validated at both the ML level and the network simulation level with real ONNX inference.
 
 ### "What are your key numbers?"
-- **99.97% DR** on CAN (per-attack: 99.94%–100% across all 4 attack types)
-- **100% F1** on Ethernet (excl. tunneled-CAN-DoS — a publishable finding)
-- **94.76% F1** on cross-protocol fusion
-- **52,469** total edge parameters (15× compression from teachers)
-- **0.096 ms** CAN inference, **0.078 ms** ETH inference, **0.005 ms** fusion
+- **99.97% DR** on CAN per-attack evaluation
+- **3.13% DR** on `can_dos_tunneled`, while the other Ethernet attack classes remain at **99.90%–100% DR**
+- **95.98% F1** on cross-protocol fusion test evaluation
+- **52,757** total edge parameters
+- **0.997 ms** CAN E2E mean, **0.721 ms** Ethernet E2E mean, **0.341 ms** fusion E2E mean in current runtime replay
 - **99.3%** fast-path decisions in MultiAttack scenario
 - **7.3 KB** fusion ONNX model
 - **60+** OMNeT++ runs with **real ONNX Runtime** across 12 configurations

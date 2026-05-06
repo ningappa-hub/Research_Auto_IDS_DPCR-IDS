@@ -1,0 +1,726 @@
+version 3
+run Fuzzy-0-20260506-10:42:17-1938
+attr configname Fuzzy
+attr datetime 20260506-10:42:17
+attr datetimef 20260506-104217
+attr experiment Fuzzy
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network dpcrids.AutomotiveNetwork
+attr processid 1938
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+config sim-time-limit 20s
+config description "Fuzzy random injection attack on CAN bus"
+config extends General
+config *.enableFuzzy true
+config *.fuzzyAttacker.attackInterval 0.5ms
+config *.fuzzyAttacker.attackStartTime 5s
+config *.fuzzyAttacker.attackDuration 10s
+config *.alertSink.logFile "\"results/ids_alerts_fuzzy.csv\""
+config network dpcrids.AutomotiveNetwork
+config sim-time-limit 30s
+config warmup-period 1s
+config repeat 5
+config seed-set 0
+config *.numSensorECUs 5
+config *.numAdasECUs 2
+config *.enableDos false
+config *.enableFuzzy false
+config *.enableSpoof false
+config *.sensor[*].sendInterval 2ms
+config *.sensor[*].numCanIds 10
+config *.sensor[*].payloadLength 8
+config *.adas[*].sendInterval 1ms
+config *.adas[*].payloadLength 512
+config *.gateway.canExpert.onnxModelPath "\"models/can_student.onnx\""
+config *.gateway.canExpert.normalizationPath "\"models/can_normalization.json\""
+config *.gateway.canExpert.temperature 0.95
+config *.gateway.canExpert.windowSize 100
+config *.gateway.canExpert.stride 50
+config *.gateway.ethExpert.onnxModelPath "\"models/eth_student.onnx\""
+config *.gateway.ethExpert.temperature 0.5
+config *.gateway.fusion.onnxModelPath "\"models/fusion_student.onnx\""
+config *.gateway.fusion.temperature 1.1
+config *.gateway.fusion.bucketMs 250
+config *.gateway.router.tauLow 0.15
+config *.gateway.router.tauHigh 0.85
+config *.gateway.router.fallbackUncertaintyLow 0.3
+config *.gateway.router.fallbackUncertaintyHigh 0.7
+config *.gateway.aggregator.bucketMs 250
+config *.gateway.aggregator.failOpen true
+config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
+config output-vector-file results/Fuzzy-0.vec
+config output-scalar-file results/Fuzzy-0.sca
+config eventlog-file results/Fuzzy-0.elog
+
+par AutomotiveNetwork.sensor[0] typename "\"dpcrids.traffic.CanTrafficGen\""
+par AutomotiveNetwork.sensor[0] sendInterval 0.002s
+attr unit s
+par AutomotiveNetwork.sensor[0] numCanIds 10
+par AutomotiveNetwork.sensor[0] startCanId 256
+par AutomotiveNetwork.sensor[0] payloadLength 8
+par AutomotiveNetwork.sensor[1] typename "\"dpcrids.traffic.CanTrafficGen\""
+par AutomotiveNetwork.sensor[1] sendInterval 0.002s
+attr unit s
+par AutomotiveNetwork.sensor[1] numCanIds 10
+par AutomotiveNetwork.sensor[1] startCanId 266
+par AutomotiveNetwork.sensor[1] payloadLength 8
+par AutomotiveNetwork.sensor[2] typename "\"dpcrids.traffic.CanTrafficGen\""
+par AutomotiveNetwork.sensor[2] sendInterval 0.002s
+attr unit s
+par AutomotiveNetwork.sensor[2] numCanIds 10
+par AutomotiveNetwork.sensor[2] startCanId 276
+par AutomotiveNetwork.sensor[2] payloadLength 8
+par AutomotiveNetwork.sensor[3] typename "\"dpcrids.traffic.CanTrafficGen\""
+par AutomotiveNetwork.sensor[3] sendInterval 0.002s
+attr unit s
+par AutomotiveNetwork.sensor[3] numCanIds 10
+par AutomotiveNetwork.sensor[3] startCanId 286
+par AutomotiveNetwork.sensor[3] payloadLength 8
+par AutomotiveNetwork.sensor[4] typename "\"dpcrids.traffic.CanTrafficGen\""
+par AutomotiveNetwork.sensor[4] sendInterval 0.002s
+attr unit s
+par AutomotiveNetwork.sensor[4] numCanIds 10
+par AutomotiveNetwork.sensor[4] startCanId 296
+par AutomotiveNetwork.sensor[4] payloadLength 8
+par AutomotiveNetwork.adas[0] typename "\"dpcrids.traffic.EthTrafficGen\""
+par AutomotiveNetwork.adas[0] sendInterval 0.001s
+attr unit s
+par AutomotiveNetwork.adas[0] payloadLength 512
+par AutomotiveNetwork.adas[0] maxPayloadLength 1500
+par AutomotiveNetwork.adas[1] typename "\"dpcrids.traffic.EthTrafficGen\""
+par AutomotiveNetwork.adas[1] sendInterval 0.001s
+attr unit s
+par AutomotiveNetwork.adas[1] payloadLength 512
+par AutomotiveNetwork.adas[1] maxPayloadLength 1500
+par AutomotiveNetwork.fuzzyAttacker typename "\"dpcrids.traffic.FuzzyAttacker\""
+par AutomotiveNetwork.fuzzyAttacker attackInterval 0.0005s
+attr unit s
+par AutomotiveNetwork.fuzzyAttacker attackStartTime 5s
+attr unit s
+par AutomotiveNetwork.fuzzyAttacker attackDuration 10s
+attr unit s
+scalar AutomotiveNetwork.fuzzyAttacker fuzzyFramesSent 20000
+par AutomotiveNetwork.canHub typename "\"dpcrids.nodes.CanBusHub\""
+par AutomotiveNetwork.canHub numInputs 6
+par AutomotiveNetwork.ethHub typename "\"dpcrids.nodes.EthBusHub\""
+par AutomotiveNetwork.ethHub numInputs 2
+par AutomotiveNetwork.gateway.canExpert typename "\"dpcrids.ids.CanExpertIDS\""
+par AutomotiveNetwork.gateway.canExpert onnxModelPath "\"models/can_student.onnx\""
+par AutomotiveNetwork.gateway.canExpert normalizationPath "\"models/can_normalization.json\""
+par AutomotiveNetwork.gateway.canExpert temperature 0.95
+par AutomotiveNetwork.gateway.canExpert windowSize 100
+par AutomotiveNetwork.gateway.canExpert stride 50
+par AutomotiveNetwork.gateway.canExpert numFeatures 16
+par AutomotiveNetwork.gateway.canExpert embeddingDim 128
+scalar AutomotiveNetwork.gateway.canExpert framesReceived 70007
+scalar AutomotiveNetwork.gateway.canExpert windowsProcessed 1399
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:mean 0.10198618356773
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:max 0.547471
+attr recordingmode max
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:timeavg 0.10135035978331
+attr recordingmode timeavg
+statistic AutomotiveNetwork.gateway.canExpert canCalProb:histogram
+field count 1351
+field mean 0.99895489500238
+field stddev 0.0023584757609785
+field min 0.98651447191477
+field max 0.9999999431037
+field sum 1349.5880631482
+field sqrsum 1348.1851111694
+attr recordingmode histogram
+bin	-inf	0
+bin	0.986466	1
+bin	0.986634	0
+bin	0.986802	0
+bin	0.98697	0
+bin	0.987138	1
+bin	0.987306	0
+bin	0.987474	0
+bin	0.987642	1
+bin	0.98781	0
+bin	0.987978	0
+bin	0.988146	0
+bin	0.988314	1
+bin	0.988482	1
+bin	0.98865	1
+bin	0.988818	1
+bin	0.988986	0
+bin	0.989154	1
+bin	0.989322	1
+bin	0.98949	0
+bin	0.989658	1
+bin	0.989826	0
+bin	0.989994	0
+bin	0.990162	1
+bin	0.99033	3
+bin	0.990498	2
+bin	0.990666	1
+bin	0.990834	1
+bin	0.991002	0
+bin	0.99117	1
+bin	0.991338	4
+bin	0.991506	5
+bin	0.991674	4
+bin	0.991842	3
+bin	0.99201	1
+bin	0.992178	2
+bin	0.992346	3
+bin	0.992514	3
+bin	0.992682	10
+bin	0.99285	7
+bin	0.993018	6
+bin	0.993186	3
+bin	0.993354	4
+bin	0.993522	3
+bin	0.99369	5
+bin	0.993858	13
+bin	0.994026	7
+bin	0.994194	8
+bin	0.994362	7
+bin	0.99453	4
+bin	0.994698	7
+bin	0.994866	13
+bin	0.995034	7
+bin	0.995202	9
+bin	0.99537	11
+bin	0.995538	8
+bin	0.995706	4
+bin	0.995874	10
+bin	0.996042	9
+bin	0.99621	8
+bin	0.996378	2
+bin	0.996546	4
+bin	0.996714	11
+bin	0.996882	7
+bin	0.99705	3
+bin	0.997218	1
+bin	0.997386	6
+bin	0.997554	4
+bin	0.997722	1
+bin	0.99789	1
+bin	0.998058	1
+bin	0.998226	0
+bin	0.998394	2
+bin	0.998562	0
+bin	0.99873	0
+bin	0.998898	0
+bin	0.999066	0
+bin	0.999234	0
+bin	0.999402	0
+bin	0.99957	0
+bin	0.999738	58
+bin	0.999906	1043
+bin	1.000074	0
+scalar AutomotiveNetwork.gateway.canExpert canLogit:mean 11.155707333549
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.canExpert canLogit:max 15.847933769226
+attr recordingmode max
+par AutomotiveNetwork.gateway.ethExpert typename "\"dpcrids.ids.EthExpertIDS\""
+par AutomotiveNetwork.gateway.ethExpert onnxModelPath "\"models/eth_student.onnx\""
+par AutomotiveNetwork.gateway.ethExpert temperature 0.5
+par AutomotiveNetwork.gateway.ethExpert payloadBytes 1024
+par AutomotiveNetwork.gateway.ethExpert frameHeight 32
+par AutomotiveNetwork.gateway.ethExpert frameWidth 32
+par AutomotiveNetwork.gateway.ethExpert inChannels 4
+par AutomotiveNetwork.gateway.ethExpert embeddingDim 128
+scalar AutomotiveNetwork.gateway.ethExpert framesProcessed 39989
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:mean 0.084564617304098
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:max 0.60984
+attr recordingmode max
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:timeavg 0.084531537868729
+attr recordingmode timeavg
+statistic AutomotiveNetwork.gateway.ethExpert ethCalProb:histogram
+field count 37991
+field mean 0.0018660021546196
+field stddev 0.026102127486781
+field min 9.4991760248752e-12
+field max 0.996061509313
+field sum 70.891287856153
+field sqrsum 26.015670340065
+attr recordingmode histogram
+bin	-inf	0
+bin	0	37379
+bin	0.01152	290
+bin	0.02304	116
+bin	0.03456	33
+bin	0.04608	14
+bin	0.0576	16
+bin	0.06912	12
+bin	0.08064	14
+bin	0.09216	13
+bin	0.10368	4
+bin	0.1152	7
+bin	0.12672	3
+bin	0.13824	5
+bin	0.14976	5
+bin	0.16128	6
+bin	0.1728	3
+bin	0.18432	2
+bin	0.19584	2
+bin	0.20736	1
+bin	0.21888	4
+bin	0.2304	2
+bin	0.24192	2
+bin	0.25344	0
+bin	0.26496	1
+bin	0.27648	2
+bin	0.288	0
+bin	0.29952	1
+bin	0.31104	1
+bin	0.32256	2
+bin	0.33408	2
+bin	0.3456	0
+bin	0.35712	1
+bin	0.36864	1
+bin	0.38016	2
+bin	0.39168	0
+bin	0.4032	0
+bin	0.41472	1
+bin	0.42624	0
+bin	0.43776	3
+bin	0.44928	1
+bin	0.4608	1
+bin	0.47232	0
+bin	0.48384	1
+bin	0.49536	1
+bin	0.50688	3
+bin	0.5184	1
+bin	0.52992	1
+bin	0.54144	2
+bin	0.55296	2
+bin	0.56448	0
+bin	0.576	0
+bin	0.58752	0
+bin	0.59904	1
+bin	0.61056	0
+bin	0.62208	1
+bin	0.6336	0
+bin	0.64512	2
+bin	0.65664	1
+bin	0.66816	0
+bin	0.67968	3
+bin	0.6912	1
+bin	0.70272	0
+bin	0.71424	1
+bin	0.72576	2
+bin	0.73728	0
+bin	0.7488	1
+bin	0.76032	1
+bin	0.77184	0
+bin	0.78336	1
+bin	0.79488	1
+bin	0.8064	2
+bin	0.81792	0
+bin	0.82944	0
+bin	0.84096	0
+bin	0.85248	1
+bin	0.864	0
+bin	0.87552	1
+bin	0.88704	0
+bin	0.89856	0
+bin	0.91008	0
+bin	0.9216	1
+bin	0.93312	1
+bin	0.94464	0
+bin	0.95616	0
+bin	0.96768	3
+bin	0.9792	1
+bin	0.99072	2
+bin	1.00224	0
+scalar AutomotiveNetwork.gateway.ethExpert ethLogit:mean -5.1269886641767
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.ethExpert ethLogit:max 2.7665057182312
+attr recordingmode max
+par AutomotiveNetwork.gateway.fusion typename "\"dpcrids.ids.FusionIDS\""
+par AutomotiveNetwork.gateway.fusion onnxModelPath "\"models/fusion_student.onnx\""
+par AutomotiveNetwork.gateway.fusion temperature 1.1
+par AutomotiveNetwork.gateway.fusion numExperts 2
+par AutomotiveNetwork.gateway.fusion expertDim 129
+par AutomotiveNetwork.gateway.fusion bucketMs 250
+scalar AutomotiveNetwork.gateway.fusion fusionsPaired 1399
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:mean 0.0061390370096225
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:max 0.085637
+attr recordingmode max
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:timeavg 0.0061906255789848
+attr recordingmode timeavg
+statistic AutomotiveNetwork.gateway.fusion fusionCalProb:histogram
+field count 1351
+field mean 0.95536121451327
+field stddev 0.025517352088667
+field min 0.89140224277288
+field max 0.99793201301296
+field sum 1290.6930008074
+field sqrsum 1233.9570654129
+attr recordingmode histogram
+bin	-inf	0
+bin	0.89	1
+bin	0.892	2
+bin	0.894	4
+bin	0.896	6
+bin	0.898	4
+bin	0.9	7
+bin	0.902	6
+bin	0.904	3
+bin	0.906	10
+bin	0.908	9
+bin	0.91	18
+bin	0.912	7
+bin	0.914	17
+bin	0.916	16
+bin	0.918	17
+bin	0.92	23
+bin	0.922	24
+bin	0.924	32
+bin	0.926	30
+bin	0.928	22
+bin	0.93	22
+bin	0.932	33
+bin	0.934	23
+bin	0.936	38
+bin	0.938	26
+bin	0.94	39
+bin	0.942	34
+bin	0.944	36
+bin	0.946	35
+bin	0.948	34
+bin	0.95	31
+bin	0.952	31
+bin	0.954	34
+bin	0.956	25
+bin	0.958	26
+bin	0.96	27
+bin	0.962	38
+bin	0.964	45
+bin	0.966	32
+bin	0.968	43
+bin	0.97	19
+bin	0.972	27
+bin	0.974	34
+bin	0.976	31
+bin	0.978	23
+bin	0.98	30
+bin	0.982	31
+bin	0.984	44
+bin	0.986	45
+bin	0.988	50
+bin	0.99	41
+bin	0.992	37
+bin	0.994	19
+bin	0.996	10
+bin	0.998	0
+bin	1	0
+bin	1.002	0
+bin	1.004	0
+bin	1.006	0
+bin	1.008	0
+bin	1.01	0
+bin	1.012	0
+scalar AutomotiveNetwork.gateway.fusion fusionLogit:mean 3.620627800153
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.fusion fusionLogit:max 6.7970204353333
+attr recordingmode max
+par AutomotiveNetwork.gateway.router typename "\"dpcrids.ids.ConfidenceRouter\""
+par AutomotiveNetwork.gateway.router tauLow 0.15
+par AutomotiveNetwork.gateway.router tauHigh 0.85
+par AutomotiveNetwork.gateway.router fallbackUncertaintyLow 0.3
+par AutomotiveNetwork.gateway.router fallbackUncertaintyHigh 0.7
+par AutomotiveNetwork.gateway.router expertOverride true
+scalar AutomotiveNetwork.gateway.router normalCount 0
+scalar AutomotiveNetwork.gateway.router attackCount 1399
+scalar AutomotiveNetwork.gateway.router escalateCount 0
+scalar AutomotiveNetwork.gateway.router fastPathCount 1399
+scalar AutomotiveNetwork.gateway.router heavyPathCount 0
+scalar AutomotiveNetwork.gateway.router expertOverrideCount 0
+scalar AutomotiveNetwork.gateway.router routingRatioFast 1
+scalar AutomotiveNetwork.gateway.router routingLatencyMs:mean 0.00013643449296817
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.router routingLatencyMs:max 0.008106
+attr recordingmode max
+statistic AutomotiveNetwork.gateway.router routePath:histogram
+field count 1351
+field mean 0
+field stddev 0
+field min 0
+field max 0
+field sum 0
+field sqrsum 0
+attr recordingmode histogram
+bin	-inf	0
+bin	-0.5	0
+bin	-0.48	0
+bin	-0.46	0
+bin	-0.44	0
+bin	-0.42	0
+bin	-0.4	0
+bin	-0.38	0
+bin	-0.36	0
+bin	-0.34	0
+bin	-0.32	0
+bin	-0.3	0
+bin	-0.28	0
+bin	-0.26	0
+bin	-0.24	0
+bin	-0.22	0
+bin	-0.2	0
+bin	-0.18	0
+bin	-0.16	0
+bin	-0.14	0
+bin	-0.12	0
+bin	-0.1	0
+bin	-0.08	0
+bin	-0.06	0
+bin	-0.04	0
+bin	-0.02	0
+bin	0	1351
+bin	0.02	0
+bin	0.04	0
+bin	0.06	0
+bin	0.08	0
+bin	0.1	0
+bin	0.12	0
+bin	0.14	0
+bin	0.16	0
+bin	0.18	0
+bin	0.2	0
+bin	0.22	0
+bin	0.24	0
+bin	0.26	0
+bin	0.28	0
+bin	0.3	0
+bin	0.32	0
+bin	0.34	0
+bin	0.36	0
+bin	0.38	0
+bin	0.4	0
+bin	0.42	0
+bin	0.44	0
+bin	0.46	0
+bin	0.48	0
+bin	0.5	0
+statistic AutomotiveNetwork.gateway.router routeDecision:histogram
+field count 1351
+field mean 1
+field stddev 0
+field min 1
+field max 1
+field sum 1351
+field sqrsum 1351
+attr recordingmode histogram
+bin	-inf	0
+bin	0	0
+bin	1	1351
+bin	2	0
+par AutomotiveNetwork.gateway.aggregator typename "\"dpcrids.ids.DecisionAggregator\""
+par AutomotiveNetwork.gateway.aggregator bucketMs 250
+par AutomotiveNetwork.gateway.aggregator failOpen true
+scalar AutomotiveNetwork.gateway.aggregator totalAlerts 1399
+scalar AutomotiveNetwork.gateway.aggregator totalFlushed 80
+scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:mean 123.9238494991
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:max 244.687995429
+attr recordingmode max
+statistic AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:histogram
+field count 77
+field mean 123.9238494991
+field stddev 71.319141532083
+field min 1.590192556
+field max 244.687995429
+field sum 9542.136411431
+field sqrsum 1569066.1926645
+attr recordingmode histogram
+bin	-inf	0
+bin	0	1
+bin	5	1
+bin	10	1
+bin	15	0
+bin	20	2
+bin	25	1
+bin	30	3
+bin	35	1
+bin	40	1
+bin	45	1
+bin	50	5
+bin	55	1
+bin	60	2
+bin	65	2
+bin	70	4
+bin	75	1
+bin	80	2
+bin	85	0
+bin	90	1
+bin	95	3
+bin	100	3
+bin	105	0
+bin	110	3
+bin	115	1
+bin	120	3
+bin	125	2
+bin	130	0
+bin	135	0
+bin	140	1
+bin	145	1
+bin	150	4
+bin	155	0
+bin	160	0
+bin	165	0
+bin	170	2
+bin	175	2
+bin	180	1
+bin	185	0
+bin	190	0
+bin	195	2
+bin	200	4
+bin	205	3
+bin	210	2
+bin	215	1
+bin	220	3
+bin	225	1
+bin	230	2
+bin	235	1
+bin	240	2
+bin	245	0
+bin	250	0
+bin	255	0
+bin	260	0
+bin	265	0
+bin	270	0
+bin	275	0
+bin	280	0
+bin	285	0
+bin	290	0
+bin	295	0
+bin	300	0
+bin	305	0
+bin	310	0
+scalar AutomotiveNetwork.gateway.aggregator bucketSize:mean 17.701298701299
+attr recordingmode mean
+scalar AutomotiveNetwork.gateway.aggregator bucketSize:max 23
+attr recordingmode max
+statistic AutomotiveNetwork.gateway.aggregator aggregatedDecision:histogram
+field count 77
+field mean 1
+field stddev 0
+field min 1
+field max 1
+field sum 77
+field sqrsum 77
+attr recordingmode histogram
+bin	-inf	0
+bin	0	0
+bin	1	77
+bin	2	0
+par AutomotiveNetwork.gateway typename "\"dpcrids.nodes.GatewayNode\""
+par AutomotiveNetwork.alertSink typename "\"dpcrids.nodes.AlertSink\""
+par AutomotiveNetwork.alertSink logFile "\"results/ids_alerts_fuzzy.csv\""
+scalar AutomotiveNetwork.alertSink totalAlerts 80
+scalar AutomotiveNetwork.alertSink normalAlerts 0
+scalar AutomotiveNetwork.alertSink attackAlerts 80
+scalar AutomotiveNetwork.alertSink escalateAlerts 0
+scalar AutomotiveNetwork.alertSink alertLatencyMs:mean 123.9238494991
+attr recordingmode mean
+scalar AutomotiveNetwork.alertSink alertLatencyMs:max 244.687995429
+attr recordingmode max
+statistic AutomotiveNetwork.alertSink alertLatencyMs:histogram
+field count 77
+field mean 123.9238494991
+field stddev 71.319141532083
+field min 1.590192556
+field max 244.687995429
+field sum 9542.136411431
+field sqrsum 1569066.1926645
+attr recordingmode histogram
+bin	-inf	0
+bin	0	1
+bin	5	1
+bin	10	1
+bin	15	0
+bin	20	2
+bin	25	1
+bin	30	3
+bin	35	1
+bin	40	1
+bin	45	1
+bin	50	5
+bin	55	1
+bin	60	2
+bin	65	2
+bin	70	4
+bin	75	1
+bin	80	2
+bin	85	0
+bin	90	1
+bin	95	3
+bin	100	3
+bin	105	0
+bin	110	3
+bin	115	1
+bin	120	3
+bin	125	2
+bin	130	0
+bin	135	0
+bin	140	1
+bin	145	1
+bin	150	4
+bin	155	0
+bin	160	0
+bin	165	0
+bin	170	2
+bin	175	2
+bin	180	1
+bin	185	0
+bin	190	0
+bin	195	2
+bin	200	4
+bin	205	3
+bin	210	2
+bin	215	1
+bin	220	3
+bin	225	1
+bin	230	2
+bin	235	1
+bin	240	2
+bin	245	0
+bin	250	0
+bin	255	0
+bin	260	0
+bin	265	0
+bin	270	0
+bin	275	0
+bin	280	0
+bin	285	0
+bin	290	0
+bin	295	0
+bin	300	0
+bin	305	0
+bin	310	0
+statistic AutomotiveNetwork.alertSink alertDecision:histogram
+field count 77
+field mean 1
+field stddev 0
+field min 1
+field max 1
+field sum 77
+field sqrsum 77
+attr recordingmode histogram
+bin	-inf	0
+bin	0	0
+bin	1	77
+bin	2	0
+par AutomotiveNetwork typename "\"dpcrids.AutomotiveNetwork\""
+par AutomotiveNetwork numSensorECUs 5
+par AutomotiveNetwork numAdasECUs 2
+par AutomotiveNetwork enableDos false
+par AutomotiveNetwork enableFuzzy true
+par AutomotiveNetwork enableSpoof false
+

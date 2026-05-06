@@ -1,0 +1,120 @@
+file 4818725 1778064195                                         
+version 3
+run RpmSpoof-1-20260506-10:43:10-1942
+attr configname RpmSpoof
+attr datetime 20260506-10:43:10
+attr datetimef 20260506-104310
+attr experiment RpmSpoof
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network dpcrids.AutomotiveNetwork
+attr processid 1942
+attr repetition 1
+attr replication #1
+attr resultdir results
+attr runnumber 1
+attr seedset 1
+config sim-time-limit 20s
+config description "RPM masquerade spoofing attack"
+config extends General
+config *.enableSpoof true
+config *.spoofAttacker.attackInterval 2ms
+config *.spoofAttacker.attackStartTime 5s
+config *.spoofAttacker.attackDuration 10s
+config *.spoofAttacker.spoofCanId 0x0B4
+config *.spoofAttacker.spoofType "\"rpm\""
+config *.alertSink.logFile "\"results/ids_alerts_rpm_spoof.csv\""
+config network dpcrids.AutomotiveNetwork
+config sim-time-limit 30s
+config warmup-period 1s
+config repeat 5
+config seed-set 1
+config *.numSensorECUs 5
+config *.numAdasECUs 2
+config *.enableDos false
+config *.enableFuzzy false
+config *.enableSpoof false
+config *.sensor[*].sendInterval 2ms
+config *.sensor[*].numCanIds 10
+config *.sensor[*].payloadLength 8
+config *.adas[*].sendInterval 1ms
+config *.adas[*].payloadLength 512
+config *.gateway.canExpert.onnxModelPath "\"models/can_student.onnx\""
+config *.gateway.canExpert.normalizationPath "\"models/can_normalization.json\""
+config *.gateway.canExpert.temperature 0.95
+config *.gateway.canExpert.windowSize 100
+config *.gateway.canExpert.stride 50
+config *.gateway.ethExpert.onnxModelPath "\"models/eth_student.onnx\""
+config *.gateway.ethExpert.temperature 0.5
+config *.gateway.fusion.onnxModelPath "\"models/fusion_student.onnx\""
+config *.gateway.fusion.temperature 1.1
+config *.gateway.fusion.bucketMs 250
+config *.gateway.router.tauLow 0.15
+config *.gateway.router.tauHigh 0.85
+config *.gateway.router.fallbackUncertaintyLow 0.3
+config *.gateway.router.fallbackUncertaintyHigh 0.7
+config *.gateway.aggregator.bucketMs 250
+config *.gateway.aggregator.failOpen true
+config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
+config output-vector-file results/RpmSpoof-1.vec
+config output-scalar-file results/RpmSpoof-1.sca
+config eventlog-file results/RpmSpoof-1.elog
+
+vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
+attr recordingmode vector
+vector 1 AutomotiveNetwork.gateway.canExpert canCalProb:vector ETV
+attr recordingmode vector
+vector 2 AutomotiveNetwork.gateway.canExpert canInferenceMs:vector ETV
+attr recordingmode vector
+vector 3 AutomotiveNetwork.gateway.ethExpert ethLogit:vector ETV
+attr recordingmode vector
+vector 4 AutomotiveNetwork.gateway.ethExpert ethCalProb:vector ETV
+attr recordingmode vector
+vector 5 AutomotiveNetwork.gateway.ethExpert ethInferenceMs:vector ETV
+attr recordingmode vector
+vector 6 AutomotiveNetwork.gateway.fusion fusionLogit:vector ETV
+attr recordingmode vector
+vector 7 AutomotiveNetwork.gateway.fusion fusionCalProb:vector ETV
+attr recordingmode vector
+vector 8 AutomotiveNetwork.gateway.fusion fusionInferenceMs:vector ETV
+attr recordingmode vector
+vector 9 AutomotiveNetwork.gateway.router routeDecision:vector ETV
+attr recordingmode vector
+vector 10 AutomotiveNetwork.gateway.router routePath:vector ETV
+attr recordingmode vector
+vector 11 AutomotiveNetwork.gateway.router routingLatencyMs:vector ETV
+attr recordingmode vector
+vector 12 AutomotiveNetwork.gateway.aggregator aggregatedDecision:vector ETV
+attr recordingmode vector
+vector 13 AutomotiveNetwork.gateway.aggregator bucketSize:vector ETV
+attr recordingmode vector
+vector 14 AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:vector ETV
+attr recordingmode vector
+vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
+attr recordingmode vector
+vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
+attr recordingmode vector
+3	3858 1340398 15640 287398 1.000330420519 17.382122637781 32768 -12.781085014343 3.5781309604645 -183166.87132826 1103591.720807
+4	1344256 1436437 15640 287398 1.000330420519 17.382122637781 32768 7.9157234157849e-12 0.99922064319045 80.278031469626 48.4161632451
+5	2780693 1078275 15640 287398 1.000330420519 17.382122637781 32768 0.074423 0.743112 2752.633983 245.93615927895
+0	3858968 41064 15672 328240 1.002357502837 19.991166817972 1050 3.2891161441803 10.706753730774 8523.0422303677 73779.8114465
+1	3900032 42076 15672 328240 1.002357502837 19.991166817972 1050 0.9695937066689 0.99998725383137 1047.3847428677 1044.8047960915
+2	3942108 33684 15672 328240 1.002357502837 19.991166817972 1050 0.085132 0.44393 108.994493 12.303384317409
+3	3975792 218700 287408 328377 17.382901020049 19.999751285668 5235 -12.110900878906 0.1672079116106 -30662.758215085 191992.52026103
+4	4194492 234124 287408 328377 17.382901020049 19.999751285668 5235 3.0241627160636e-11 0.58283342513995 4.1806134569299 1.2422617878243
+5	4428616 176763 287408 328377 17.382901020049 19.999751285668 5235 0.074559 0.390789 441.581167 39.836623886643
+6	4605379 41053 15673 328241 1.002357502837 19.991166817972 1050 2.3175933361053 7.3115816116333 4224.166851759 18078.151230749
+7	4646432 42095 15673 328241 1.002357502837 19.991166817972 1050 0.89157230879269 0.99870363305191 1013.8900395479 979.62715236354
+8	4688527 33699 15673 328241 1.002357502837 19.991166817972 1050 0.004328 0.029906 7.438088 0.063763996966
+9	4722226 26464 15674 328242 1.002357502837 19.991166817972 1050 1 1 1050 1050
+10	4748690 27514 15674 328242 1.002357502837 19.991166817972 1050 0 0 0 0
+11	4776204 34460 15674 328242 1.002357502837 19.991166817972 1050 8.1e-05 0.006787 0.152989 7.1105625e-05
+12	4810664 1249 15630 328382 1 20 77 1 1 77 77
+13	4811913 1326 15630 328382 1 20 77 12 15 1062 14778
+14	4813239 2118 15630 328382 1 20 77 0.00915604 248.496696591 10263.452764328 1832708.7159301
+15	4815357 1249 15631 328383 1 20 77 1 1 77 77
+16	4816606 2118 15631 328383 1 20 77 0.00915604 248.496696591 10263.452764328 1832708.7159301
+
