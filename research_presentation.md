@@ -20,6 +20,9 @@
 | 8 | **Research Readiness Assessment** — Full audit identifying strengths, critical issues, and action priorities for paper submission | 🟢 Planning |
 | 9 | **15 Publication-Quality Figures** — Up from 7, now includes per-attack timelines for all scenarios and updated routing/latency charts | 🟢 Enhancement |
 | 10 | **Exact Parameter Counts** — Total edge deployment: **52,469 parameters** (CAN: 22,977 + ETH: 28,033 + Fusion: 1,459) | 🟢 Precision |
+| 11 | **Data Leakage & Generalization Fixes** — Mitigated dataset-specific memorization by applying temporal context requirements and revising dataset windowing/splits. | 🔴 Critical fix |
+| 12 | **Training Regularization** — Added Dropout layers to the CNN student and class-balanced weighting (`pos_weight`) to mitigate severe overfitting. | 🔴 Critical fix |
+| 13 | **Early Stopping Transition** — Shifted model early stopping criteria from validation F1-score to AUC-PR to increase stability against imbalanced data. | 🟡 Major enhancement |
 
 ---
 
@@ -330,12 +333,12 @@ From our runtime simulation results:
 
 | Metric | CAN Student | Ethernet Student (Distilled) |
 |--------|------------|------------------------------|
-| **Precision** | 99.97% | 100.0% |
-| **Recall (DR)** | 99.87% | 100.0% |
-| **F1 Score** | 99.92% | 100.0% |
-| **FPR** | 0.031% | 0.0% |
-| **AUC-ROC** | 0.9999 | 1.0000 |
-| **AUC-PR** | 0.9999 | 1.0000 |
+| **Precision** | 99.97% | 91.95% |
+| **Recall (DR)** | 99.87% | 68.51% |
+| **F1 Score** | 99.92% | 78.52% |
+| **FPR** | 0.031% | 1.19% |
+| **AUC-ROC** | 0.9999 | 0.9716 |
+| **AUC-PR** | 0.9999 | 0.8927 |
 
 > [!NOTE]
 > The CAN student achieves near-perfect detection with only 24 false negatives out of 18,891 attack samples and just 6 false positives out of 19,648 normal samples on the test set.
@@ -365,8 +368,8 @@ From our runtime simulation results:
 | Frame Injection | 16,962 | 99.99% | 100.0% | 100.0% | 0.0% |
 | MAC Flooding | 16,809 | 99.65% | 100.0% | 99.83% | 0.0% |
 | PTP Injection | 26,013 | **100.0%** | 100.0% | **100.0%** | 0.0% |
-| Normal | — | — | — | — | 0.82% |
-| **Overall** | **130,834** | **68.31%** | **94.28%** | **79.22%** | **0.82%** |
+| Normal | — | — | — | — | 1.19% |
+| **Overall** | **130,834** | **68.51%** | **91.95%** | **78.52%** | **1.19%** |
 
 > [!WARNING]
 > The "CAN DoS Tunneled" attack type in TOW-IDS has **0% detection** — this single category accounts for 41,203 of the 41,466 false negatives. This is because tunneled CAN-over-Ethernet DoS attack traffic closely resembles normal Ethernet payload patterns. Excluding this category, the remaining four attack types achieve **99.32%–100% DR**. This is a known limitation of the payload-only representation and a planned future improvement.
@@ -375,13 +378,13 @@ From our runtime simulation results:
 
 | Metric | Fusion Student |
 |--------|---------------|
-| **Precision** | 96.53% |
-| **Recall (DR)** | 93.06% |
-| **F1 Score** | 94.76% |
-| **FPR** | 11.56% |
-| **AUC-ROC** | 0.9691 |
-| **AUC-PR** | 0.9918 |
-| **ECE** | 0.164 (best calibrated) |
+| **Precision** | 99.29% |
+| **Recall (DR)** | 92.89% |
+| **F1 Score** | 95.98% |
+| **FPR** | 2.31% |
+| **AUC-ROC** | 0.9782 |
+| **AUC-PR** | 0.9944 |
+| **ECE** | 0.209 (best calibrated) |
 
 **Pair-type distribution in fusion test set:**
 | Pair Type | Meaning | Count |

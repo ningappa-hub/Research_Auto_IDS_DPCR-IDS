@@ -1,4 +1,4 @@
-﻿"""Ethernet student CNN implementation with dependency guards."""
+"""Ethernet student CNN implementation with dependency guards."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 
 if nn is not None:
     class EthStudentCNN(nn.Module):
-        def __init__(self, in_channels: int = 3, embedding_dim: int = 128) -> None:
+        def __init__(self, in_channels: int = 4, embedding_dim: int = 128) -> None:
             super().__init__()
             self.encoder = nn.Sequential(
                 nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),
@@ -27,16 +27,19 @@ if nn is not None:
                 nn.MaxPool2d(2),
             )
             self.pool = nn.AdaptiveAvgPool2d((1, 1))
+            self.dropout = nn.Dropout(0.5)
             self.proj = nn.Linear(64, embedding_dim)
             self.classifier = nn.Linear(embedding_dim, 1)
 
         def forward_features(self, x):
             x = self.encoder(x)
             x = self.pool(x).flatten(1)
+            x = self.dropout(x)
             return self.proj(x)
 
         def forward(self, x):
             features = self.forward_features(x)
+            features = self.dropout(features)
             return self.classifier(features).squeeze(-1)
 else:
     class EthStudentCNN:  # type: ignore[no-redef]

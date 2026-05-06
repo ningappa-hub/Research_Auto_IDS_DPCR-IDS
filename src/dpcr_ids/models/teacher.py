@@ -1,4 +1,4 @@
-﻿"""Protocol-specific teacher models."""
+"""Protocol-specific teacher models."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ if nn is not None:
 
 
     class EthTeacherTransformer(nn.Module):
-        def __init__(self, in_channels: int = 3, d_model: int = 128, nhead: int = 8, num_layers: int = 4) -> None:
+        def __init__(self, in_channels: int = 4, d_model: int = 128, nhead: int = 8, num_layers: int = 4) -> None:
             super().__init__()
             self.patch_embed = nn.Conv2d(in_channels, d_model, kernel_size=4, stride=4)
             encoder_layer = nn.TransformerEncoderLayer(

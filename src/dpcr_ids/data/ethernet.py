@@ -1,4 +1,4 @@
-﻿"""Automotive Ethernet preprocessing and dataset manifests."""
+"""Automotive Ethernet preprocessing and dataset manifests."""
 
 from __future__ import annotations
 
@@ -184,6 +184,7 @@ def read_label_csv(path: str | Path) -> list[TowLabelRecord]:
 def bytes_to_byte_image(
     payload: bytes,
     prev_payload: bytes | None = None,
+    iat_ms: float = 0.0,
     payload_bytes: int = 1024,
     frame_height: int = 32,
     frame_width: int = 32,
@@ -197,13 +198,17 @@ def bytes_to_byte_image(
     if frame_height * frame_width != payload_bytes:
         raise DataValidationError("Frame dimensions must multiply to payload_bytes")
 
+    normalized_iat = min(max(iat_ms / 100.0, 0.0), 1.0)
+
     value_channel: list[list[float]] = []
     delta_channel: list[list[float]] = []
     position_channel: list[list[float]] = []
+    temporal_channel: list[list[float]] = []
     for row_index in range(frame_height):
         value_row: list[float] = []
         delta_row: list[float] = []
         position_row: list[float] = []
+        temporal_row: list[float] = []
         for col_index in range(frame_width):
             offset = row_index * frame_width + col_index
             current_value = padded[offset]
@@ -211,10 +216,12 @@ def bytes_to_byte_image(
             value_row.append(current_value / 255.0)
             delta_row.append(max(-1.0, min(1.0, (current_value - previous_value) / 255.0)))
             position_row.append(offset / payload_bytes)
+            temporal_row.append(normalized_iat)
         value_channel.append(value_row)
         delta_channel.append(delta_row)
         position_channel.append(position_row)
-    return [value_channel, delta_channel, position_channel]
+        temporal_channel.append(temporal_row)
+    return [value_channel, delta_channel, position_channel, temporal_channel]
 
 
 def paired_smoke_adapter(root: str | Path) -> list[dict[str, str]]:
@@ -239,7 +246,8 @@ def iter_pcap_payloads(path: str | Path) -> list[dict[str, Any]]:
             raw_frame = bytes(packet)
             payload = strip_l2_header(raw_frame)
             protocol = getattr(packet.lastlayer(), "name", "ethernet").lower()
-            frames.append({"frame_idx": frame_idx, "payload": payload, "protocol": protocol})
+            timestamp = float(packet.time)
+            frames.append({"frame_idx": frame_idx, "payload": payload, "protocol": protocol, "timestamp": timestamp})
     finally:
         packets.close()
     return frames
@@ -259,12 +267,19 @@ def build_ethernet_samples(
         )
 
     prev_by_protocol: dict[str, bytes] = {}
+    prev_ts_by_protocol: dict[str, float] = {}
     samples: list[EthernetSample] = []
     for frame, label in zip(frame_list, labels):
         previous_payload = prev_by_protocol.get(label.protocol)
+        
+        current_ts = frame.get("timestamp", 0.0)
+        previous_ts = prev_ts_by_protocol.get(label.protocol, current_ts)
+        iat_ms = (current_ts - previous_ts) * 1000.0
+        
         features = bytes_to_byte_image(
             frame["payload"],
             prev_payload=previous_payload,
+            iat_ms=iat_ms,
             payload_bytes=payload_bytes,
             frame_height=frame_height,
             frame_width=frame_width,
@@ -279,6 +294,7 @@ def build_ethernet_samples(
             )
         )
         prev_by_protocol[label.protocol] = frame["payload"]
+        prev_ts_by_protocol[label.protocol] = current_ts
     return samples
 
 
@@ -407,7 +423,7 @@ def _stream_official_tow_ids_dataset(
     frame_width: int,
 ) -> dict[str, Any]:
     scapy_all = require_dependency("scapy.all")
-    feature_shape = [3, frame_height, frame_width]
+    feature_shape = [4, frame_height, frame_width]
     manifest_metadata = {
         "source_variants": ["official_tow_ids"],
         "surrogate_only": False,
@@ -431,6 +447,7 @@ def _stream_official_tow_ids_dataset(
             file_raw_labels = Counter(label.raw_label for label in labels)
             raw_labels.update(file_raw_labels)
             prev_by_protocol: dict[str, bytes] = {}
+            prev_ts_by_protocol: dict[str, float] = {}
             packet_count = 0
 
             packets = scapy_all.PcapReader(str(pcap_file))
@@ -446,9 +463,15 @@ def _stream_official_tow_ids_dataset(
                     raw_frame = bytes(packet)
                     payload = strip_l2_header(raw_frame)
                     previous_payload = prev_by_protocol.get(label.protocol)
+                    
+                    current_ts = float(packet.time)
+                    previous_ts = prev_ts_by_protocol.get(label.protocol, current_ts)
+                    iat_ms = (current_ts - previous_ts) * 1000.0
+                    
                     features = bytes_to_byte_image(
                         payload,
                         prev_payload=previous_payload,
+                        iat_ms=iat_ms,
                         payload_bytes=payload_bytes,
                         frame_height=frame_height,
                         frame_width=frame_width,
@@ -467,6 +490,7 @@ def _stream_official_tow_ids_dataset(
                     split_label_counts[split_name].update([label.label])
                     file_split_counts.update([split_name])
                     prev_by_protocol[label.protocol] = payload
+                    prev_ts_by_protocol[label.protocol] = current_ts
                     packet_count += 1
                     if packet_count % 100000 == 0:
                         print(
@@ -630,7 +654,7 @@ def prepare_ethernet_dataset(
             split_name,
             rows,
             protocol_dir,
-            [3, frame_height, frame_width],
+            [4, frame_height, frame_width],
             metadata=manifest_metadata,
         ).to_dict()
         for split_name, rows in all_samples.items()

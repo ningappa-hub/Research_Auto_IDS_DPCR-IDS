@@ -320,9 +320,21 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
             lr=float(config["training"]["learning_rate"]),
             weight_decay=float(config["training"]["weight_decay"]),
         )
-        criterion = torch.nn.BCEWithLogitsLoss()
+        
+        pos_weight = None
+        if distill_from is None:
+            num_positives = 0
+            for _, batch_labels in train_loader:
+                num_positives += int((batch_labels == 1).sum())
+            num_negatives = len(train_dataset) - num_positives
+            if num_positives > 0 and num_negatives > 0:
+                weight_val = float(num_negatives) / float(num_positives)
+                pos_weight = torch.tensor([weight_val], device=device)
+                print(f"Applying BCE pos_weight={weight_val:.4f} for {protocol}")
 
-        best_f1 = -1.0
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+        best_metric = -1.0
         best_state = None
         best_epoch = 0
         epochs_without_improvement = 0
@@ -363,9 +375,9 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
                 device=device,
             )
             val_report = evaluate_predictions(val_labels, val_probs)
-            val_f1 = float(val_report["f1"])
-            if val_f1 > best_f1 + 1e-12:
-                best_f1 = val_f1
+            val_metric = float(val_report.get("auc_pr", val_report.get("f1", 0.0)))
+            if val_metric > best_metric + 1e-12:
+                best_metric = val_metric
                 best_epoch = epoch + 1
                 epochs_without_improvement = 0
                 best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
@@ -374,13 +386,13 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
 
             print(
                 f"epoch={epoch + 1}/{epochs} device={device} protocol={protocol} "
-                f"loss={epoch_loss / max(batch_count, 1):.6f} val_f1={val_f1:.6f} "
+                f"loss={epoch_loss / max(batch_count, 1):.6f} val_auc_pr={val_metric:.6f} "
                 f"best_epoch={best_epoch} patience_used={epochs_without_improvement}/{patience}"
             )
             if epochs_without_improvement >= patience:
                 print(
                     f"early_stop device={device} protocol={protocol} "
-                    f"epoch={epoch + 1} best_epoch={best_epoch} best_f1={best_f1:.6f}"
+                    f"epoch={epoch + 1} best_epoch={best_epoch} best_auc_pr={best_metric:.6f}"
                 )
                 break
 
