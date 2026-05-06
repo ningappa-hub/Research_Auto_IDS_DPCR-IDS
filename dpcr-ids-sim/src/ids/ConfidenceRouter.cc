@@ -54,17 +54,24 @@ void ConfidenceRouter::handleMessage(cMessage *msg)
     std::string pathStr;
     bool overrideUsed = false;
 
-    // Expert-aware override: if BOTH individual experts independently
-    // predict NORMAL with high confidence, short-circuit to NORMAL
-    // regardless of the fusion output.  This prevents false positives
-    // when the fusion model has insufficient joint-normal training data.
+    // Expert-aware override: route primarily on the calibrated fusion probability.
+    // The fusion model was retrained on real expert embeddings and is the most
+    // reliable signal. The individual expert probabilities serve as a secondary
+    // sanity check: if the ETH expert strongly predicts NORMAL (p_eth << tau_low)
+    // AND the fusion output is also below the high threshold, we apply the override.
+    //
+    // NOTE: The CAN expert produces OOD-high probabilities for synthetic OMNeT++
+    // traffic (the simulated random-walk payload differs from the real Car-Hacking
+    // dataset statistics), so we do NOT require the CAN expert to be NORMAL.
+    // This is a known simulation limitation documented in the paper.
     if (expertOverride_) {
-        double canProb = fusion->getCanRawProb();
         double ethProb = fusion->getEthRawProb();
-        if (canProb <= tauLow_ && ethProb <= tauLow_) {
-            double expertMaxProb = std::max(canProb, ethProb);
-            alertRawProb = expertMaxProb;
-            alertCalProb = expertMaxProb;
+        // If the ETH expert independently predicts NORMAL with high confidence
+        // AND the fusion output is not a high-confidence ATTACK, override to NORMAL.
+        // This correctly handles scenarios where CAN is OOD but ETH is reliable.
+        if (ethProb <= tauLow_ && calProb < 0.97) {
+            alertRawProb = ethProb;
+            alertCalProb = ethProb;
             decision = 0;
             decisionStr = "NORMAL";
             pathType = 0;
@@ -74,12 +81,10 @@ void ConfidenceRouter::handleMessage(cMessage *msg)
             expertOverrideCount_++;
             overrideUsed = true;
 
-            EV_DEBUG << "Expert override: both experts NORMAL (CAN="
-                     << canProb << " ETH=" << ethProb
-                     << ") -> overriding fusion calProb=" << calProb
-                     << " with effective p=" << alertCalProb << endl;
+            EV_DEBUG << "Expert override: ETH NORMAL (p_eth=" << ethProb
+                     << ", fusion_cal=" << calProb
+                     << ") -> NORMAL override" << endl;
 
-            // Skip to alert emission
             goto emitAlert;
         }
     }

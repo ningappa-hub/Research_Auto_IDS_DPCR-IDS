@@ -1,8 +1,8 @@
 version 3
-run MultiAttack-2-20260506-10:43:42-1944
+run MultiAttack-2-20260506-10:59:26-2241
 attr configname MultiAttack
-attr datetime 20260506-10:43:42
-attr datetimef 20260506-104342
+attr datetime 20260506-10:59:26
+attr datetimef 20260506-105926
 attr experiment MultiAttack
 attr inifile omnetpp.ini
 attr iterationvars ""
@@ -10,7 +10,7 @@ attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 1944
+attr processid 2241
 attr repetition 2
 attr replication #2
 attr resultdir results
@@ -148,11 +148,11 @@ par AutomotiveNetwork.gateway.canExpert numFeatures 16
 par AutomotiveNetwork.gateway.canExpert embeddingDim 128
 scalar AutomotiveNetwork.gateway.canExpert framesReceived 124984
 scalar AutomotiveNetwork.gateway.canExpert windowsProcessed 2498
-scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:mean 0.09124579877551
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:mean 0.090650095102041
 attr recordingmode mean
-scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:max 0.378238
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:max 0.632644
 attr recordingmode max
-scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:timeavg 0.096297176235545
+scalar AutomotiveNetwork.gateway.canExpert canInferenceMs:timeavg 0.094838859856899
 attr recordingmode timeavg
 statistic AutomotiveNetwork.gateway.canExpert canCalProb:histogram
 field count 2450
@@ -260,11 +260,11 @@ par AutomotiveNetwork.gateway.ethExpert frameWidth 32
 par AutomotiveNetwork.gateway.ethExpert inChannels 4
 par AutomotiveNetwork.gateway.ethExpert embeddingDim 128
 scalar AutomotiveNetwork.gateway.ethExpert framesProcessed 50007
-scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:mean 0.083116458633617
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:mean 0.08253712070402
 attr recordingmode mean
-scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:max 0.619826
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:max 0.654577
 attr recordingmode max
-scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:timeavg 0.083074388123619
+scalar AutomotiveNetwork.gateway.ethExpert ethInferenceMs:timeavg 0.082516525884775
 attr recordingmode timeavg
 statistic AutomotiveNetwork.gateway.ethExpert ethCalProb:histogram
 field count 48010
@@ -346,11 +346,11 @@ par AutomotiveNetwork.gateway.fusion numExperts 2
 par AutomotiveNetwork.gateway.fusion expertDim 129
 par AutomotiveNetwork.gateway.fusion bucketMs 250
 scalar AutomotiveNetwork.gateway.fusion fusionsPaired 2498
-scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:mean 0.005136206122449
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:mean 0.0050927212244898
 attr recordingmode mean
-scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:max 0.048151
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:max 0.057014
 attr recordingmode max
-scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:timeavg 0.0057052335802839
+scalar AutomotiveNetwork.gateway.fusion fusionInferenceMs:timeavg 0.0055619616444627
 attr recordingmode timeavg
 statistic AutomotiveNetwork.gateway.fusion fusionCalProb:histogram
 field count 2450
@@ -463,9 +463,9 @@ scalar AutomotiveNetwork.gateway.router fastPathCount 2498
 scalar AutomotiveNetwork.gateway.router heavyPathCount 0
 scalar AutomotiveNetwork.gateway.router expertOverrideCount 0
 scalar AutomotiveNetwork.gateway.router routingRatioFast 1
-scalar AutomotiveNetwork.gateway.router routingLatencyMs:mean 0.00010704448979592
+scalar AutomotiveNetwork.gateway.router routingLatencyMs:mean 0.00010867510204082
 attr recordingmode mean
-scalar AutomotiveNetwork.gateway.router routingLatencyMs:max 0.000485
+scalar AutomotiveNetwork.gateway.router routingLatencyMs:max 0.000986
 attr recordingmode max
 statistic AutomotiveNetwork.gateway.router routePath:histogram
 field count 2450
@@ -546,18 +546,18 @@ par AutomotiveNetwork.gateway.aggregator bucketMs 250
 par AutomotiveNetwork.gateway.aggregator failOpen true
 scalar AutomotiveNetwork.gateway.aggregator totalAlerts 2498
 scalar AutomotiveNetwork.gateway.aggregator totalFlushed 100
-scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:mean 128.33494302321
+scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:mean 128.33495032218
 attr recordingmode mean
-scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:max 248.500245
+scalar AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:max 248.500108
 attr recordingmode max
 statistic AutomotiveNetwork.gateway.aggregator endToEndLatencyMs:histogram
 field count 97
-field mean 128.33494302321
-field stddev 81.349654661901
-field min 2.873923258
-field max 248.500245
-field sum 12448.489473251
-field sqrsum 2232881.7533813
+field mean 128.33495032218
+field stddev 81.349632328939
+field min 2.873941258
+field max 248.500108
+field sum 12448.490181251
+field sqrsum 2232881.5862821
 attr recordingmode histogram
 bin	-inf	0
 bin	0	2
@@ -647,18 +647,18 @@ scalar AutomotiveNetwork.alertSink totalAlerts 100
 scalar AutomotiveNetwork.alertSink normalAlerts 0
 scalar AutomotiveNetwork.alertSink attackAlerts 100
 scalar AutomotiveNetwork.alertSink escalateAlerts 0
-scalar AutomotiveNetwork.alertSink alertLatencyMs:mean 128.33494302321
+scalar AutomotiveNetwork.alertSink alertLatencyMs:mean 128.33495032218
 attr recordingmode mean
-scalar AutomotiveNetwork.alertSink alertLatencyMs:max 248.500245
+scalar AutomotiveNetwork.alertSink alertLatencyMs:max 248.500108
 attr recordingmode max
 statistic AutomotiveNetwork.alertSink alertLatencyMs:histogram
 field count 97
-field mean 128.33494302321
-field stddev 81.349654661901
-field min 2.873923258
-field max 248.500245
-field sum 12448.489473251
-field sqrsum 2232881.7533813
+field mean 128.33495032218
+field stddev 81.349632328939
+field min 2.873941258
+field max 248.500108
+field sum 12448.490181251
+field sqrsum 2232881.5862821
 attr recordingmode histogram
 bin	-inf	0
 bin	0	2
