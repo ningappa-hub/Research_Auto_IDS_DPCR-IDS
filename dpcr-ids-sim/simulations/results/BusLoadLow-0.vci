@@ -1,30 +1,30 @@
+file 3772 1778055272                                            
 version 3
-run DoS-0-20260506-08:14:31-775
-attr configname DoS
+run BusLoadLow-0-20260506-08:14:31-785
+attr configname BusLoadLow
 attr datetime 20260506-08:14:31
 attr datetimef 20260506-081431
-attr experiment DoS
+attr experiment BusLoadLow
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 775
+attr processid 785
 attr repetition 0
 attr replication #0
 attr resultdir results
 attr runnumber 0
 attr seedset 0
 config sim-time-limit 20s
-config description "DoS flood attack on CAN bus"
+config description "Low bus load (~20%) — 2 sensor ECUs"
 config extends General
+config *.numSensorECUs 2
 config *.enableDos true
-config *.dosAttacker.attackInterval 0.1ms
 config *.dosAttacker.attackStartTime 5s
 config *.dosAttacker.attackDuration 10s
-config *.dosAttacker.targetCanId 0x000
-config *.alertSink.logFile "\"results/ids_alerts_dos.csv\""
+config *.alertSink.logFile "\"results/ids_alerts_busload_low.csv\""
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
@@ -57,9 +57,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/DoS-0.vec
-config output-scalar-file results/DoS-0.sca
-config eventlog-file results/DoS-0.elog
+config output-vector-file results/BusLoadLow-0.vec
+config output-scalar-file results/BusLoadLow-0.sca
+config eventlog-file results/BusLoadLow-0.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector

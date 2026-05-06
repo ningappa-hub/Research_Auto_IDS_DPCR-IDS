@@ -12,7 +12,7 @@ simple EthExpertIDS
         int payloadBytes = default(1024);
         int frameHeight = default(32);
         int frameWidth = default(32);
-        int inChannels = default(3);
+        int inChannels = default(4);
         int embeddingDim = default(128);
         @display("i=block/cogwheel,blue");
         @signal[ethLogit](type=double);

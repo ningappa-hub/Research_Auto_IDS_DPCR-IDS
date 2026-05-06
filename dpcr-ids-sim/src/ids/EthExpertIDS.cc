@@ -52,15 +52,20 @@ void EthExpertIDS::handleMessage(cMessage *msg)
 
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    // Convert payload → [3, 32, 32] image tensor matching Python pipeline
+    // Compute temporal IAT
+    double currentTsMs = simTime().dbl() * 1000.0;
+    double iatMs = hasPrevPayload_ ? (currentTsMs - prevTsMs_) : 0.0;
+
+    // Convert payload → [4, 32, 32] image tensor matching Python pipeline
     std::vector<uint8_t> prevForDelta;
     if (hasPrevPayload_) {
         prevForDelta = prevPayload_;
     }
-    std::vector<float> imageTensor = payloadToImage(payload, prevForDelta);
+    std::vector<float> imageTensor = payloadToImage(payload, prevForDelta, iatMs);
 
     // Update previous payload state
     prevPayload_ = payload;
+    prevTsMs_ = currentTsMs;
     hasPrevPayload_ = true;
 
     // Run ONNX inference
@@ -112,7 +117,8 @@ void EthExpertIDS::handleMessage(cMessage *msg)
 }
 
 std::vector<float> EthExpertIDS::payloadToImage(const std::vector<uint8_t>& payload,
-                                                  const std::vector<uint8_t>& prevPayload)
+                                                  const std::vector<uint8_t>& prevPayload,
+                                                  double iatMs)
 {
     int totalPixels = inChannels_ * frameHeight_ * frameWidth_;
     std::vector<float> image(totalPixels, 0.0f);
@@ -131,10 +137,13 @@ std::vector<float> EthExpertIDS::payloadToImage(const std::vector<uint8_t>& payl
         paddedPrev[i] = prevPayload[i];
     }
 
-    // Build 3-channel image matching Python bytes_to_byte_image():
+    // Build 4-channel image matching Python bytes_to_byte_image():
     //   Channel 0: value    — byte / 255.0
     //   Channel 1: delta    — clamp((current - previous) / 255.0, -1, 1)
     //   Channel 2: position — offset / payloadBytes_
+    //   Channel 3: temporal — min(max(iat_ms / 100.0, 0.0), 1.0)
+    double normalizedIat = std::max(0.0, std::min(iatMs / 100.0, 1.0));
+
     for (int h = 0; h < frameHeight_; h++) {
         for (int w = 0; w < frameWidth_; w++) {
             int byteIdx = h * frameWidth_ + w;
@@ -144,16 +153,20 @@ std::vector<float> EthExpertIDS::payloadToImage(const std::vector<uint8_t>& payl
 
             // Channel 0: value
             int ch0Idx = 0 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
-            image[ch0Idx] = currentVal / 255.0f;
+            if (ch0Idx < totalPixels) image[ch0Idx] = currentVal / 255.0f;
 
             // Channel 1: delta (clamped to [-1, 1])
             int ch1Idx = 1 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
             float delta = (currentVal - prevVal) / 255.0f;
-            image[ch1Idx] = std::max(-1.0f, std::min(1.0f, delta));
+            if (ch1Idx < totalPixels) image[ch1Idx] = std::max(-1.0f, std::min(1.0f, delta));
 
             // Channel 2: position
             int ch2Idx = 2 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
-            image[ch2Idx] = static_cast<float>(byteIdx) / static_cast<float>(payloadBytes_);
+            if (ch2Idx < totalPixels) image[ch2Idx] = static_cast<float>(byteIdx) / static_cast<float>(payloadBytes_);
+
+            // Channel 3: temporal
+            int ch3Idx = 3 * (frameHeight_ * frameWidth_) + h * frameWidth_ + w;
+            if (ch3Idx < totalPixels) image[ch3Idx] = static_cast<float>(normalizedIat);
         }
     }
 

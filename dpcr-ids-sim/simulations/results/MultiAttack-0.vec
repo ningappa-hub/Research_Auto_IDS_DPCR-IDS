@@ -1,28 +1,41 @@
-file 937588 1778047376                                          
 version 3
-run General-4-20260506-06:02:54-429
-attr configname General
-attr datetime 20260506-06:02:54
-attr datetimef 20260506-060254
-attr experiment General
+run MultiAttack-0-20260506-08:14:31-783
+attr configname MultiAttack
+attr datetime 20260506-08:14:31
+attr datetimef 20260506-081431
+attr experiment MultiAttack
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 429
-attr repetition 4
-attr replication #4
+attr processid 783
+attr repetition 0
+attr replication #0
 attr resultdir results
-attr runnumber 4
-attr seedset 4
-config sim-time-limit 5s
+attr runnumber 0
+attr seedset 0
+config sim-time-limit 25s
+config description "Combined DoS + Fuzzy + Spoof attack"
+config extends General
+config *.enableDos true
+config *.enableFuzzy true
+config *.enableSpoof true
+config *.dosAttacker.attackStartTime 3s
+config *.dosAttacker.attackDuration 5s
+config *.fuzzyAttacker.attackStartTime 8s
+config *.fuzzyAttacker.attackDuration 5s
+config *.spoofAttacker.attackStartTime 14s
+config *.spoofAttacker.attackDuration 5s
+config *.spoofAttacker.spoofType "\"gear\""
+config *.alertSink.logFile "\"results/ids_alerts_multi.csv\""
+config sim-time-limit 25s
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
 config repeat 5
-config seed-set 4
+config seed-set 0
 config *.numSensorECUs 5
 config *.numAdasECUs 2
 config *.enableDos false
@@ -50,9 +63,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/General-4.vec
-config output-scalar-file results/General-4.sca
-config eventlog-file results/General-4.elog
+config output-vector-file results/MultiAttack-0.vec
+config output-scalar-file results/MultiAttack-0.sca
+config eventlog-file results/MultiAttack-0.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector
@@ -88,21 +101,4 @@ vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
 attr recordingmode vector
 vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
 attr recordingmode vector
-0	3473 7798 15656 78282 1.000848479869 4.998719379907 201 7.7705316543579 10.436317443848 1851.2394218445 17132.746835556
-1	11271 7997 15656 78282 1.000848479869 4.998719379907 201 0.9997197384561 0.99998305629625 200.98442386787 200.96884954788
-2	19268 6385 15656 78282 1.000848479869 4.998719379907 201 0.081648 0.272204 19.885809 2.128847914297
-3	25653 318320 15642 78298 1.000110202438 4.99931555029 8003 -50.095020294189 0.20662552118301 -199206.75346702 5261591.8923316
-4	343973 298701 15642 78298 1.000110202438 4.99931555029 8003 1.0000002e-14 0.6018671610302 0.69728595288431 0.3711932514087
-5	642674 254311 15642 78298 1.000110202438 4.99931555029 8003 0.070186 0.56565 644.113669 57.046371706689
-6	896985 7803 15657 78283 1.000848479869 4.998719379907 201 0.55767405033112 15.824901580811 1664.236123085 16202.501585129
-7	904788 8006 15657 78283 1.000848479869 4.998719379907 201 0.62409740721137 0.99999943490655 197.52142909151 194.64259324854
-8	912794 6396 15657 78283 1.000848479869 4.998719379907 201 0.003789 0.145311 1.377782 0.030491293122
-9	919190 5008 15658 78284 1.000848479869 4.998719379907 201 1 2 203 207
-10	924198 5209 15658 78284 1.000848479869 4.998719379907 201 0 1 6 6
-11	929407 6514 15658 78284 1.000848479869 4.998719379907 201 7.7e-05 0.000394 0.025802 3.978516e-06
-12	935921 253 15638 78303 1 5 17 1 2 19 23
-13	936174 270 15638 78303 1 5 17 12 13 213 2673
-14	936444 445 15638 78303 1 5 17 11.15542715 249.554566016 1665.693407235 251663.924733
-15	936889 253 15639 78304 1 5 17 1 2 19 23
-16	937142 445 15639 78304 1 5 17 11.15542715 249.554566016 1665.693407235 251663.924733
 

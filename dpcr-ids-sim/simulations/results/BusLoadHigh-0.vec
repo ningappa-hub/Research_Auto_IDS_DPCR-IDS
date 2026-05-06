@@ -1,36 +1,34 @@
-file 5087291 1778047420                                         
 version 3
-run DoS-4-20260506-06:03:35-430
-attr configname DoS
-attr datetime 20260506-06:03:35
-attr datetimef 20260506-060335
-attr experiment DoS
+run BusLoadHigh-0-20260506-08:14:32-789
+attr configname BusLoadHigh
+attr datetime 20260506-08:14:32
+attr datetimef 20260506-081432
+attr experiment BusLoadHigh
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 430
-attr repetition 4
-attr replication #4
+attr processid 789
+attr repetition 0
+attr replication #0
 attr resultdir results
-attr runnumber 4
-attr seedset 4
+attr runnumber 0
+attr seedset 0
 config sim-time-limit 20s
-config description "DoS flood attack on CAN bus"
+config description "High bus load (~80%) — 15 sensor ECUs"
 config extends General
+config *.numSensorECUs 15
 config *.enableDos true
-config *.dosAttacker.attackInterval 0.1ms
 config *.dosAttacker.attackStartTime 5s
 config *.dosAttacker.attackDuration 10s
-config *.dosAttacker.targetCanId 0x000
-config *.alertSink.logFile "\"results/ids_alerts_dos.csv\""
+config *.alertSink.logFile "\"results/ids_alerts_busload_high.csv\""
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
 config repeat 5
-config seed-set 4
+config seed-set 0
 config *.numSensorECUs 5
 config *.numAdasECUs 2
 config *.enableDos false
@@ -58,9 +56,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/DoS-4.vec
-config output-scalar-file results/DoS-4.sca
-config eventlog-file results/DoS-4.elog
+config output-vector-file results/BusLoadHigh-0.vec
+config output-scalar-file results/BusLoadHigh-0.sca
+config eventlog-file results/BusLoadHigh-0.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector
@@ -96,24 +94,4 @@ vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
 attr recordingmode vector
 vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
 attr recordingmode vector
-3	3767 1341958 15642 578259 1.000110202438 17.385215668076 32768 -50.095020294189 3.6699197292328 -813587.90492293 21437465.183143
-4	1345725 1261917 15642 578259 1.000110202438 17.385215668076 32768 1.0000002e-14 0.99935126639961 2.0473345056503 1.4771422594095
-5	2607642 1079968 15642 578259 1.000110202438 17.385215668076 32768 0.070068 0.531628 2553.071713 209.75989785835
-0	3687610 102657 15656 619117 1.000848479869 19.996254521643 2951 4.3217463493347 18.623573303223 31675.648182869 357554.70611909
-1	3790267 105565 15656 619117 1.000848479869 19.996254521643 2951 0.9895350818452 0.99999995718667 2949.9633427697 2948.9310238229
-2	3895832 81979 15656 619117 1.000848479869 19.996254521643 2951 0.071676 0.407993 251.835606 23.23411974463
-3	3977811 218611 578263 619178 17.385335367453 19.999489348807 5232 -47.494564056396 0.58885109424591 -130394.93202895 3454992.4340977
-4	4196422 205869 578263 619178 17.385335367453 19.999489348807 5232 1.0000002e-14 0.76453439964089 1.0176430253582 0.64521332200721
-5	4402291 176763 578263 619178 17.385335367453 19.999489348807 5232 0.070531 0.639123 413.630481 35.487523794167
-6	4579054 103009 15657 619118 1.000848479869 19.996254521643 2951 -7.1817946434021 22.418910980225 24169.166643761 278759.28414537
-7	4682063 105686 15657 619118 1.000848479869 19.996254521643 2951 0.0014584752167294 0.99999956712402 2722.522872325 2633.7373435127
-8	4787749 81982 15657 619118 1.000848479869 19.996254521643 2951 0.002876 0.086903 13.528451 0.090445430213
-9	4869731 61658 15658 619119 1.000848479869 19.996254521643 2951 0 2 2974 3266
-10	4931389 64609 15658 619119 1.000848479869 19.996254521643 2951 0 1 301 301
-11	4995998 83408 15658 619119 1.000848479869 19.996254521643 2951 2.2e-05 0.000537 0.301932 4.070706e-05
-12	5079406 1253 15638 619180 1 20 77 1 2 123 215
-13	5080659 1330 15638 619180 1 20 77 12 63 2963 162063
-14	5081989 2024 15638 619180 1 20 77 6.400122 249.554356016 8893.096821407 1407760.6534065
-15	5084013 1253 15639 619181 1 20 77 1 2 123 215
-16	5085266 2024 15639 619181 1 20 77 6.400122 249.554356016 8893.096821407 1407760.6534065
 

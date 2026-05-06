@@ -635,7 +635,7 @@ def export_onnx_from_path(config_path: str, protocol: str) -> dict[str, Any]:
         payload = fusion_config(config)
         input_shape = (1, 2, int(payload["expert_dim"]))
     else:
-        input_shape = (1, 16, 100) if protocol == "can" else (1, 3, 32, 32)
+        input_shape = (1, 16, 100) if protocol == "can" else (1, 4, 32, 32)
     output_path = ensure_dir(Path(config["artifacts_dir"]) / "export") / f"{protocol}_student.onnx"
     export_model_to_onnx(model, input_shape=input_shape, output_path=output_path)
     return {"protocol": protocol, "onnx_path": str(output_path), "input_shape": list(input_shape)}

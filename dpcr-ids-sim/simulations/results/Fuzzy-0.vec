@@ -1,28 +1,34 @@
-file 937704 1778047372                                          
 version 3
-run General-1-20260506-06:02:51-429
-attr configname General
-attr datetime 20260506-06:02:51
-attr datetimef 20260506-060251
-attr experiment General
+run Fuzzy-0-20260506-08:14:31-777
+attr configname Fuzzy
+attr datetime 20260506-08:14:31
+attr datetimef 20260506-081431
+attr experiment Fuzzy
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 429
-attr repetition 1
-attr replication #1
+attr processid 777
+attr repetition 0
+attr replication #0
 attr resultdir results
-attr runnumber 1
-attr seedset 1
-config sim-time-limit 5s
+attr runnumber 0
+attr seedset 0
+config sim-time-limit 20s
+config description "Fuzzy random injection attack on CAN bus"
+config extends General
+config *.enableFuzzy true
+config *.fuzzyAttacker.attackInterval 0.5ms
+config *.fuzzyAttacker.attackStartTime 5s
+config *.fuzzyAttacker.attackDuration 10s
+config *.alertSink.logFile "\"results/ids_alerts_fuzzy.csv\""
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
 config repeat 5
-config seed-set 1
+config seed-set 0
 config *.numSensorECUs 5
 config *.numAdasECUs 2
 config *.enableDos false
@@ -50,9 +56,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/General-1.vec
-config output-scalar-file results/General-1.sca
-config eventlog-file results/General-1.elog
+config output-vector-file results/Fuzzy-0.vec
+config output-scalar-file results/Fuzzy-0.sca
+config eventlog-file results/Fuzzy-0.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector
@@ -88,21 +94,4 @@ vector 15 AutomotiveNetwork.alertSink alertDecision:vector ETV
 attr recordingmode vector
 vector 16 AutomotiveNetwork.alertSink alertLatencyMs:vector ETV
 attr recordingmode vector
-0	3473 7797 15652 78270 1.001023704975 4.997458844215 201 7.8290677070618 10.468762397766 1843.8852443695 16983.846423613
-1	11270 7998 15652 78270 1.001023704975 4.997458844215 201 0.99973648162426 0.99998362518816 200.98462729939 200.96925617598
-2	19268 6384 15652 78270 1.001023704975 4.997458844215 201 0.082684 0.250359 19.132558 1.892776610608
-3	25652 318318 15635 78304 1.000074099837 4.999441729456 8004 -45.483306884766 -3.0569121837616 -199865.32912803 5288657.1939473
-4	343970 298776 15635 78304 1.000074099837 4.999441729456 8004 1.0000002e-14 0.0022071923537097 0.002702835075092 4.925609040217e-06
-5	642746 254347 15635 78304 1.000074099837 4.999441729456 8004 0.070162 0.494103 647.594868 58.284534375024
-6	897093 7797 15653 78271 1.001023704975 4.997458844215 201 -0.89967894554138 15.636709213257 1667.3768344522 16150.593481891
-7	904890 8000 15653 78271 1.001023704975 4.997458844215 201 0.30621174831836 0.99999932946562 197.77877501605 195.42230098072
-8	912890 6393 15653 78271 1.001023704975 4.997458844215 201 0.003859 0.01929 1.192566 0.00846524713
-9	919283 5005 15654 78272 1.001023704975 4.997458844215 201 1 2 203 207
-10	924288 5206 15654 78272 1.001023704975 4.997458844215 201 0 1 4 4
-11	929494 6531 15654 78272 1.001023704975 4.997458844215 201 8.6e-05 0.000365 0.026816 4.113594e-06
-12	936025 253 15631 78315 1 5 17 1 2 19 23
-13	936278 270 15631 78315 1 5 17 12 13 213 2673
-14	936548 451 15631 78315 1 5 17 22.349305951 242.01014854 2675.275514979 505106.89346558
-15	936999 253 15632 78316 1 5 17 1 2 19 23
-16	937252 451 15632 78316 1 5 17 22.349305951 242.01014854 2675.275514979 505106.89346558
 

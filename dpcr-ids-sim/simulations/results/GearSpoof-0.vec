@@ -1,30 +1,31 @@
 version 3
-run DoS-0-20260506-08:14:31-775
-attr configname DoS
+run GearSpoof-0-20260506-08:14:31-779
+attr configname GearSpoof
 attr datetime 20260506-08:14:31
 attr datetimef 20260506-081431
-attr experiment DoS
+attr experiment GearSpoof
 attr inifile omnetpp.ini
 attr iterationvars ""
 attr iterationvarsd ""
 attr iterationvarsf ""
 attr measurement ""
 attr network dpcrids.AutomotiveNetwork
-attr processid 775
+attr processid 779
 attr repetition 0
 attr replication #0
 attr resultdir results
 attr runnumber 0
 attr seedset 0
 config sim-time-limit 20s
-config description "DoS flood attack on CAN bus"
+config description "Gear masquerade spoofing attack"
 config extends General
-config *.enableDos true
-config *.dosAttacker.attackInterval 0.1ms
-config *.dosAttacker.attackStartTime 5s
-config *.dosAttacker.attackDuration 10s
-config *.dosAttacker.targetCanId 0x000
-config *.alertSink.logFile "\"results/ids_alerts_dos.csv\""
+config *.enableSpoof true
+config *.spoofAttacker.attackInterval 2ms
+config *.spoofAttacker.attackStartTime 5s
+config *.spoofAttacker.attackDuration 10s
+config *.spoofAttacker.spoofCanId 0x316
+config *.spoofAttacker.spoofType "\"gear\""
+config *.alertSink.logFile "\"results/ids_alerts_gear_spoof.csv\""
 config network dpcrids.AutomotiveNetwork
 config sim-time-limit 30s
 config warmup-period 1s
@@ -57,9 +58,9 @@ config *.gateway.router.fallbackUncertaintyHigh 0.7
 config *.gateway.aggregator.bucketMs 250
 config *.gateway.aggregator.failOpen true
 config *.alertSink.logFile "\"results/ids_alerts_general.csv\""
-config output-vector-file results/DoS-0.vec
-config output-scalar-file results/DoS-0.sca
-config eventlog-file results/DoS-0.elog
+config output-vector-file results/GearSpoof-0.vec
+config output-scalar-file results/GearSpoof-0.sca
+config eventlog-file results/GearSpoof-0.elog
 
 vector 0 AutomotiveNetwork.gateway.canExpert canLogit:vector ETV
 attr recordingmode vector

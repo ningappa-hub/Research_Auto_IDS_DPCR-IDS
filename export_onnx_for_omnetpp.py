@@ -99,8 +99,8 @@ def main():
     eth_model, _, _ = _load_trained_model(config, "ethernet")
     eth_model.eval()
     eth_path = output_dir / "eth_student.onnx"
-    # Ethernet input: [batch=1, channels=3, height=32, width=32]
-    export_dual_output_model(eth_model, (1, 3, 32, 32), eth_path, "ethernet")
+    # Ethernet input: [batch=1, channels=4, height=32, width=32]
+    export_dual_output_model(eth_model, (1, 4, 32, 32), eth_path, "ethernet")
 
     # --- Copy/re-export Fusion Student ---
     print("\n=== Exporting Fusion Student to ONNX ===")

@@ -354,6 +354,9 @@ python generate_paper_tables.py
 python analyze_simulation_results.py --results-dir dpcr-ids-sim/simulations/results
 ```
 
+> [!IMPORTANT]
+> `analyze_simulation_results.py` requires `.sca` files. If the results directory only contains `.vec`, `.vci`, and `.csv`, the OMNeT++ batch is incomplete or scalar outputs were not produced. Re-run at least one scenario and confirm a file like `Fuzzy-0.sca` appears before running the analyzer.
+
 **What it does:**
 - Parses all .sca files and CSV alert logs from OMNeT++ simulation
 - Prints per-scenario metric summaries and alert timeline analysis

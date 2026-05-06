@@ -81,6 +81,16 @@ def find_configs(results_dir: str) -> dict:
     return dict(configs)
 
 
+def discover_result_inventory(results_dir: str) -> dict:
+    """Return counts of key OMNeT++ result file types for diagnostics."""
+    inventory = {".sca": 0, ".vec": 0, ".vci": 0, ".csv": 0}
+    for f in os.listdir(results_dir):
+        ext = Path(f).suffix.lower()
+        if ext in inventory:
+            inventory[ext] += 1
+    return inventory
+
+
 def analyze_config(config_name: str, runs: list, results_dir: str):
     """Analyze all runs of a single configuration."""
     print(f"\n{'='*70}")
@@ -281,6 +291,21 @@ def main():
 
     configs = find_configs(results_dir)
     print(f"Found {len(configs)} configurations: {', '.join(configs.keys())}")
+
+    if not configs:
+        inventory = discover_result_inventory(results_dir)
+        print(f"\n[ERROR] No .sca files were found in: {results_dir}")
+        print("Result inventory:")
+        for ext, count in inventory.items():
+            print(f"  {ext}: {count}")
+        print("\nThis analyzer requires OMNeT++ scalar files (.sca).")
+        print("If you only have .vec/.csv files, the simulation batch did not")
+        print("produce scalar outputs, or the run is incomplete.")
+        print("\nNext checks:")
+        print("  1. Re-run one scenario directly and confirm a .sca file appears.")
+        print("  2. Verify output-scalar-file is configured in omnetpp.ini.")
+        print("  3. Verify the batch runner reports missing .sca files.")
+        return
 
     all_configs = {}
     for config_name, runs in sorted(configs.items()):
