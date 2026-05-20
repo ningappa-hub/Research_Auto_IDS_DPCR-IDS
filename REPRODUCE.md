@@ -37,6 +37,13 @@ This installs: `torch>=2.2`, `numpy>=1.24`, `pandas>=2.0`, `scapy>=2.5`, `scikit
 pip install matplotlib
 ```
 
+> [!NOTE]
+> On Windows, if the `dpcr-ids.exe` launcher is blocked by an application control policy, run the CLI through the interpreter instead:
+> `python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol can`
+
+> [!NOTE]
+> The same pattern works for every subcommand in this guide, for example `python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol fusion`.
+
 ### Configuration File
 All pipeline commands use:
 ```
@@ -49,22 +56,22 @@ configs/research_pipeline.yaml
 
 ### 1.1 Prepare All Datasets (CAN + Ethernet)
 ```powershell
-dpcr-ids prepare-data --config configs/research_pipeline.yaml --protocol all
+python -m dpcr_ids prepare-data --config configs/research_pipeline.yaml --protocol all
 ```
 
 **What it does:**
 - **CAN:** Reads 4 CSV files from `datasets/Car-Hacking Dataset/` (DoS, Fuzzy, Gear, RPM), extracts 16 features per frame, builds windows (size=100, stride=50), applies temporal split (70/15/15), fits z-score normalization on train only
-- **Ethernet:** Reads TOW-IDS PCAPs + label CSVs from `datasets/tow-ids/`, converts payloads to 3-channel 32×32 byte-images, routes `y_train.csv` → train+val and `y_test.csv` → test
+- **Ethernet:** Reads TOW-IDS PCAPs + label CSVs from `datasets/tow-ids/`, converts payloads to 4-channel 32×32 byte-images, routes `y_train.csv` → train+val and `y_test.csv` → test
 - **Output:** `artifacts/dpcr_ids_research_v1/prepared/can/` and `artifacts/dpcr_ids_research_v1/prepared/ethernet/` (train.jsonl, val.jsonl, test.jsonl + manifests)
 
 ### 1.2 Prepare Only CAN Data
 ```powershell
-dpcr-ids prepare-data --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids prepare-data --config configs/research_pipeline.yaml --protocol can
 ```
 
 ### 1.3 Prepare Only Ethernet Data
 ```powershell
-dpcr-ids prepare-data --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids prepare-data --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 ---
@@ -73,7 +80,7 @@ dpcr-ids prepare-data --config configs/research_pipeline.yaml --protocol etherne
 
 ### 2.1 Train CAN Teacher (Transformer Encoder)
 ```powershell
-dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -83,7 +90,7 @@ dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol can
 
 ### 2.2 Train Ethernet Teacher (Vision Transformer)
 ```powershell
-dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 **What it does:**
@@ -100,7 +107,7 @@ dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol ethern
 
 ### 3.1 Train CAN Student (TCN — Independent)
 ```powershell
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -110,7 +117,7 @@ dpcr-ids train-student --config configs/research_pipeline.yaml --protocol can
 
 ### 3.2 Train Ethernet Student (CNN — Independent)
 ```powershell
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 **What it does:**
@@ -124,7 +131,7 @@ dpcr-ids train-student --config configs/research_pipeline.yaml --protocol ethern
 
 ### 4.1 Distill CAN Student from CAN Teacher
 ```powershell
-dpcr-ids distill --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -134,7 +141,7 @@ dpcr-ids distill --config configs/research_pipeline.yaml --protocol can
 
 ### 4.2 Distill Ethernet Student from Ethernet Teacher
 ```powershell
-dpcr-ids distill --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 **What it does:**
@@ -147,7 +154,7 @@ dpcr-ids distill --config configs/research_pipeline.yaml --protocol ethernet
 
 ### 5.1 Calibrate CAN Model
 ```powershell
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -157,14 +164,14 @@ dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol can
 
 ### 5.2 Calibrate Ethernet Model
 ```powershell
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 - Ethernet calibrated temperature: **0.50**
 
 ### 5.3 Calibrate Fusion Model
 ```powershell
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol fusion
 ```
 
 - Fusion calibrated temperature: **1.10**
@@ -178,7 +185,7 @@ dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol fusion
 
 ### 6.1 Train CAN Fallback
 ```powershell
-dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -188,7 +195,7 @@ dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol can
 
 ### 6.2 Train Ethernet Fallback
 ```powershell
-dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 - **Output:** `artifacts/dpcr_ids_research_v1/fallback/ethernet_rf.pkl` + `ethernet_rf.json`
@@ -199,7 +206,7 @@ dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol ether
 
 ### 7.1 Train Fusion Head (Gated MLP)
 ```powershell
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol fusion
 ```
 
 **What it does:**
@@ -217,7 +224,7 @@ dpcr-ids train-student --config configs/research_pipeline.yaml --protocol fusion
 
 ### 8.1 Evaluate CAN Student
 ```powershell
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol can
 ```
 
 **What it does:**
@@ -228,7 +235,7 @@ dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol can
 
 ### 8.2 Evaluate Ethernet Student
 ```powershell
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol ethernet
 ```
 
 - **Output:** `artifacts/dpcr_ids_research_v1/evaluations/ethernet.json`
@@ -236,7 +243,7 @@ dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol ethernet
 
 ### 8.3 Evaluate Fusion Model
 ```powershell
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol fusion
 ```
 
 - **Output:** `artifacts/dpcr_ids_research_v1/evaluations/fusion.json`
@@ -249,13 +256,13 @@ dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol fusion
 ### 9.1 Export Standard ONNX (Single-Output — Logit Only)
 ```powershell
 # CAN Student ONNX
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol can
 
 # Ethernet Student ONNX
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol ethernet
 
 # Fusion Student ONNX
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol fusion
 ```
 
 **Output:** `artifacts/dpcr_ids_research_v1/export/can_student.onnx`, `eth_student.onnx` (renamed from ethernet), `fusion_student.onnx`
@@ -312,7 +319,7 @@ python simulate_real_model_runtime.py --config configs/research_pipeline.yaml --
 
 ### 11.1 Benchmark Fusion ONNX Model
 ```powershell
-dpcr-ids-benchmark-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --output-json artifacts/dpcr_ids_research_v1/export/fusion_benchmark.json --output-csv artifacts/dpcr_ids_research_v1/export/fusion_benchmark.csv --runs 5 --warmup-runs 100 --timed-runs 1000
+python -m dpcr_ids.export.benchmark --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --output-json artifacts/dpcr_ids_research_v1/export/fusion_benchmark.json --output-csv artifacts/dpcr_ids_research_v1/export/fusion_benchmark.csv --runs 5 --warmup-runs 100 --timed-runs 1000
 ```
 
 **What it does:**
@@ -323,7 +330,7 @@ dpcr-ids-benchmark-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_s
 
 ### 11.2 Replay Fusion Test Set Through ONNX
 ```powershell
-dpcr-ids-replay-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --dataset artifacts/dpcr_ids_research_v1/prepared/fusion/test.jsonl --output-json artifacts/dpcr_ids_research_v1/export/fusion_replay.json --output-csv artifacts/dpcr_ids_research_v1/export/fusion_replay.csv --calibration-json artifacts/dpcr_ids_research_v1/calibration/fusion.json --baseline-report-json artifacts/dpcr_ids_research_v1/evaluations/fusion.json --predictions-jsonl artifacts/dpcr_ids_research_v1/export/fusion_predictions.jsonl
+python -m dpcr_ids.export.replay --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --dataset artifacts/dpcr_ids_research_v1/prepared/fusion/test.jsonl --output-json artifacts/dpcr_ids_research_v1/export/fusion_replay.json --output-csv artifacts/dpcr_ids_research_v1/export/fusion_replay.csv --calibration-json artifacts/dpcr_ids_research_v1/calibration/fusion.json --baseline-report-json artifacts/dpcr_ids_research_v1/evaluations/fusion.json --predictions-jsonl artifacts/dpcr_ids_research_v1/export/fusion_predictions.jsonl
 ```
 
 **What it does:**
@@ -507,12 +514,12 @@ python -m pytest tests/test_config.py -v
 
 ### 15.1 Check Runtime Service Status
 ```powershell
-dpcr-ids serve-runtime --config configs/research_pipeline.yaml
+python -m dpcr_ids serve-runtime --config configs/research_pipeline.yaml
 ```
 
 ### 15.2 Simulate a Single Event
 ```powershell
-dpcr-ids serve-runtime --config configs/research_pipeline.yaml --protocol can --probability 0.95 --timestamp 1.0
+python -m dpcr_ids serve-runtime --config configs/research_pipeline.yaml --protocol can --probability 0.95 --timestamp 1.0
 ```
 
 ---
@@ -542,49 +549,49 @@ git push -u origin main
 .venv\Scripts\activate
 
 # ===== PHASE 1: DATA =====
-dpcr-ids prepare-data --config configs/research_pipeline.yaml --protocol all
+python -m dpcr_ids prepare-data --config configs/research_pipeline.yaml --protocol all
 
 # ===== PHASE 2: TEACHERS =====
-dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol can
-dpcr-ids train-teacher --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol ethernet
 
 # ===== PHASE 3: STUDENTS =====
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol can
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol ethernet
 
 # ===== PHASE 4: DISTILLATION =====
-dpcr-ids distill --config configs/research_pipeline.yaml --protocol can
-dpcr-ids distill --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol ethernet
 
 # ===== PHASE 5: CALIBRATION =====
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol can
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol ethernet
 
 # ===== PHASE 6: FALLBACK =====
-dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol can
-dpcr-ids train-fallback --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol ethernet
 
 # ===== PHASE 7: FUSION =====
-dpcr-ids train-student --config configs/research_pipeline.yaml --protocol fusion
-dpcr-ids calibrate --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol fusion
 
 # ===== PHASE 8: EVALUATION =====
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol can
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol ethernet
-dpcr-ids evaluate --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids evaluate --config configs/research_pipeline.yaml --protocol fusion
 
 # ===== PHASE 9: ONNX EXPORT =====
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol can
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol ethernet
-dpcr-ids export-onnx --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol ethernet
+python -m dpcr_ids export-onnx --config configs/research_pipeline.yaml --protocol fusion
 python export_onnx_for_omnetpp.py --config configs/research_pipeline.yaml
 
 # ===== PHASE 10: RUNTIME SIMULATION =====
 python simulate_real_model_runtime.py --config configs/research_pipeline.yaml --split test
 
 # ===== PHASE 11: BENCHMARKING =====
-dpcr-ids-benchmark-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --output-json artifacts/dpcr_ids_research_v1/export/fusion_benchmark.json --runs 5 --warmup-runs 100 --timed-runs 1000
-dpcr-ids-replay-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --dataset artifacts/dpcr_ids_research_v1/prepared/fusion/test.jsonl --output-json artifacts/dpcr_ids_research_v1/export/fusion_replay.json --calibration-json artifacts/dpcr_ids_research_v1/calibration/fusion.json --baseline-report-json artifacts/dpcr_ids_research_v1/evaluations/fusion.json
+python -m dpcr_ids.export.benchmark --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --output-json artifacts/dpcr_ids_research_v1/export/fusion_benchmark.json --runs 5 --warmup-runs 100 --timed-runs 1000
+python -m dpcr_ids.export.replay --model artifacts/dpcr_ids_research_v1/export/fusion_student.onnx --dataset artifacts/dpcr_ids_research_v1/prepared/fusion/test.jsonl --output-json artifacts/dpcr_ids_research_v1/export/fusion_replay.json --calibration-json artifacts/dpcr_ids_research_v1/calibration/fusion.json --baseline-report-json artifacts/dpcr_ids_research_v1/evaluations/fusion.json
 
 # ===== PHASE 12: PAPER TABLES & FIGURES =====
 python generate_paper_tables.py

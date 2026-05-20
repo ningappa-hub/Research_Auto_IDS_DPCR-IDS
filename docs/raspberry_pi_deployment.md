@@ -252,7 +252,7 @@ One of these must be added:
 
 Then add a live capture bridge that:
 - builds CAN windows `(16,100)`
-- builds Ethernet tensors `(3,32,32)`
+- builds Ethernet tensors `(4,32,32)`
 - computes expert tokens `[logit; embedding]`
 - stacks them into `[2,129]`
 - feeds `fusion_student.onnx`

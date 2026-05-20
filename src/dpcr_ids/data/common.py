@@ -1,4 +1,4 @@
-﻿"""Shared dataset utilities."""
+"""Shared dataset utilities."""
 
 from __future__ import annotations
 
@@ -19,15 +19,28 @@ def validate_split_ratios(train_ratio: float, val_ratio: float, test_ratio: floa
         raise DataValidationError(f"Split ratios must sum to 1.0, got {total}")
 
 
-def temporal_split(items: Sequence, train_ratio: float, val_ratio: float, test_ratio: float) -> dict[str, list]:
+def temporal_split(
+    items: Sequence,
+    train_ratio: float,
+    val_ratio: float,
+    test_ratio: float,
+    boundary_gap: int = 0,
+) -> dict[str, list]:
+    """Split a temporally ordered sequence into train / val / test.
+
+    Args:
+        boundary_gap: Number of items to skip at each split boundary to prevent
+            leakage from overlapping windows.  Set to ``window_size // stride``
+            for sliding-window datasets (e.g. 100 // 50 = 2 for CAN).
+    """
     validate_split_ratios(train_ratio, val_ratio, test_ratio)
     total = len(items)
     train_end = int(total * train_ratio)
     val_end = int(total * (train_ratio + val_ratio))
     return {
         "train": list(items[:train_end]),
-        "val": list(items[train_end:val_end]),
-        "test": list(items[val_end:]),
+        "val":   list(items[train_end + boundary_gap : val_end]),
+        "test":  list(items[val_end   + boundary_gap :]),
     }
 
 

@@ -234,7 +234,40 @@ Each CAN frame window (100 consecutive frames, stride 50) extracts **16 features
 
 ---
 
-## 5. Datasets Used
+## 5. Automotive Ethernet Payload Encoding
+
+Ethernet frames are converted to **4-channel 32×32 byte-images**, each encoding different aspects of the payload:
+
+| # | Channel | Description | Computation |
+|---|---------|-------------|-------------|
+| 1 | `value_channel` | Raw byte values | `payload[i] / 255.0` for normalized [0,1] |
+| 2 | `delta_channel` | Byte-wise delta from previous frame | `max(-1.0, min(1.0, (current - previous) / 255.0))` — signed change |
+| 3 | `position_channel` | Spatial position encoding | `offset / payload_bytes` — byte position within frame |
+| 4 | `temporal_channel` | Inter-arrival time | `normalized_iat = min(max(iat_ms / 100.0, 0.0), 1.0)` — relative to 100ms scale |
+
+### Channel Design Rationale
+
+- **Value Channel** — Direct payload representation; captures CAN-over-Ethernet payload patterns
+- **Delta Channel** — Detects sudden changes; effective for spoofing and injection attacks where attacker-controlled bytes differ sharply
+- **Position Channel** — Provides spatial structure; helps CNN locate attack-indicative byte sequences
+- **Temporal Channel** — Tracks inter-arrival timing; anomalous IAT (very high or very low) signals DoS or synchronization attacks
+
+### Payload Image Dimensions
+
+| Property | Value |
+|----------|-------|
+| Frame height | 32 pixels |
+| Frame width | 32 pixels |
+| Payload bytes | 1024 (exactly 32×32) |
+| Channels | 4 (NCHW: value, delta, position, temporal) |
+| Input shape to model | `(batch, 4, 32, 32)` |
+
+> [!IMPORTANT]
+> Unlike naive byte-image representations (raw bytes only), this **4-channel encoding** captures temporal dynamics and byte-level changes, improving attack detectability while maintaining spatial structure exploitable by 2D convolutions.
+
+---
+
+## 6. Datasets Used
 
 ### CAN Bus — Car-Hacking Dataset (Hankuk University)
 
@@ -270,7 +303,7 @@ Used for cross-dataset validation with PCAP pairs (original + injected) across d
 
 ---
 
-## 6. Confidence-Based Routing & Escalation
+## 7. Confidence-Based Routing & Escalation
 
 The **Confidence Router** is the core innovation that makes the system efficient.
 
@@ -330,7 +363,7 @@ From the current runtime replay artifacts:
 
 ---
 
-## 7. Experimental Results
+## 8. Experimental Results
 
 ### 7.1 Unimodal Expert Performance (Test Set)
 
@@ -456,7 +489,7 @@ Fusion model exported to ONNX and benchmarked:
 
 ---
 
-## 8. OMNeT++ Simulation — Network-Level Validation
+## 9. OMNeT++ Simulation — Network-Level Validation
 
 To validate the architecture at the **network level** (bus timing, multi-ECU topologies, realistic attack injection), we built a complete **OMNeT++ 6.3.0 discrete-event simulation** with **real ONNX Runtime inference**.
 
@@ -549,7 +582,7 @@ The simulation produced **15 publication-quality figures** *(up from 7)* validat
 
 ---
 
-## 9. Edge Deployment — Raspberry Pi Validation
+## 10. Edge Deployment — Raspberry Pi Validation
 
 ### Deployment Target
 - **Raspberry Pi 5** (ARM Cortex-A76, aarch64)
@@ -578,7 +611,7 @@ The latest `fusion_replay.json` artifact now shows exact parity with the saved d
 
 ---
 
-## 10. Calibration
+## 11. Calibration
 
 Temperature scaling is applied post-training to improve probability calibration:
 
@@ -593,7 +626,7 @@ Temperature scaling is applied post-training to improve probability calibration:
 
 ---
 
-## 11. Complete Research Pipeline *(UPDATED)*
+## 12. Complete Research Pipeline *(UPDATED)*
 
 ```mermaid
 graph TD
@@ -619,7 +652,7 @@ graph TD
 
 ---
 
-## 12. Novel Contributions *(UPDATED)*
+## 13. Novel Contributions *(UPDATED)*
 
 | # | Contribution |
 |---|-------------|
@@ -636,7 +669,7 @@ graph TD
 
 ---
 
-## 13. Limitations & Honest Scope *(UPDATED)*
+## 14. Limitations & Honest Scope *(UPDATED)*
 
 > [!CAUTION]
 > These limitations should be acknowledged during the presentation:
@@ -651,7 +684,7 @@ graph TD
 
 ---
 
-## 14. Future Work *(UPDATED — Status Tracked)*
+## 15. Future Work *(UPDATED — Status Tracked)*
 
 | Direction | Description | Status |
 |-----------|-------------|--------|
@@ -670,7 +703,7 @@ graph TD
 
 ---
 
-## 15. Repository Structure *(UPDATED)*
+## 16. Repository Structure *(UPDATED)*
 
 ```
 ResearchAutoIDS/
@@ -713,7 +746,7 @@ ResearchAutoIDS/
 
 ---
 
-## 16. Research Readiness Assessment *(NEW)*
+## 17. Research Readiness Assessment *(NEW)*
 
 > [!IMPORTANT]
 > A comprehensive readiness assessment has been completed. **Verdict: ✅ Ready for paper writing — with two targeted fixes addressed.**
@@ -737,7 +770,7 @@ ResearchAutoIDS/
 
 ---
 
-## 17. Key Talking Points for the Guide *(UPDATED)*
+## 18. Key Talking Points for the Guide *(UPDATED)*
 
 ### "What did you build?"
 A complete intrusion detection system for automotive networks that monitors both CAN bus and Ethernet simultaneously, uses knowledge distillation to compress models by **15×** (52K total edge parameters), employs confidence-based routing with expert-aware override, and validates through both ML metrics and real ONNX Runtime OMNeT++ simulation.

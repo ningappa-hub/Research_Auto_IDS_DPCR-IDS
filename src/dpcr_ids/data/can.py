@@ -1,4 +1,4 @@
-﻿"""Car-Hacking CAN preprocessing and manifest generation."""
+"""Car-Hacking CAN preprocessing and manifest generation."""
 
 from __future__ import annotations
 
@@ -201,6 +201,7 @@ def build_can_windows(
 def split_can_windows_attack_horizon(
     samples: list[CanSample],
     split_cfg: dict[str, float],
+    boundary_gap: int = 0,
 ) -> tuple[dict[str, list[CanSample]], list[CanSample], dict[str, int]]:
     attack_indices = [index for index, sample in enumerate(samples) if sample.label]
     if not attack_indices:
@@ -214,12 +215,14 @@ def split_can_windows_attack_horizon(
         split_cfg["train"],
         split_cfg["val"],
         split_cfg["test"],
+        boundary_gap=boundary_gap,
     )
     metadata = {
         "usable_window_count": len(usable_samples),
         "tail_holdout_count": len(tail_holdout),
         "first_attack_window": attack_indices[0],
         "last_attack_window": attack_indices[-1],
+        "boundary_gap": boundary_gap,
     }
     return split_samples, tail_holdout, metadata
 
@@ -265,9 +268,13 @@ def prepare_can_dataset(
         records = read_car_hacking_csv(file_path)
         feature_rows = extract_can_frame_features(records)
         windows = build_can_windows(feature_rows, window_size=window_size, stride=stride)
+        # boundary_gap = window_size // stride ensures no overlapping frames leak
+        # across train/val and val/test split boundaries.
+        boundary_gap = window_size // stride
         split_samples, tail_holdout, horizon_metadata = split_can_windows_attack_horizon(
             windows,
             split_cfg=split_cfg,
+            boundary_gap=boundary_gap,
         )
         for split_name, split_rows in split_samples.items():
             all_samples[split_name].extend(split_rows)

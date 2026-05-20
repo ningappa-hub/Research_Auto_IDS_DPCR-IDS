@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -88,6 +89,57 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
+def markdown_table_to_latex(md_text: str) -> str:
+    """Convert a markdown table string to a LaTeX tabular."""
+    lines = md_text.strip().split('\n')
+    table_lines = [line for line in lines if line.strip().startswith('|')]
+    if not table_lines:
+        return ""
+    
+    rows = []
+    for line in table_lines:
+        line = line.strip()
+        if not line:
+            continue
+        line = line.strip('|')
+        cells = [c.strip() for c in line.split('|')]
+        
+        # Separator row looks like '---'
+        if all(all(char in '-:' for char in c.strip()) for c in cells):
+            rows.append("\\hline")
+            continue
+        
+        # Format markdown
+        for i in range(len(cells)):
+            cell = cells[i]
+            cell = re.sub(r'\*\*(.*?)\*\*', r'\\textbf{\1}', cell)
+            cell = cell.replace('%', '\\%')
+            cell = cell.replace('_', '\\_')
+            cells[i] = cell
+        
+        rows.append(" & ".join(cells) + " \\\\")
+        
+    num_columns = len(table_lines[0].strip('|').split('|'))
+    col_def = "l" + "c" * (num_columns - 1)
+    
+    output = [
+        f"\\begin{{tabular}}{{{col_def}}}",
+        "\\hline"
+    ]
+    header_sep_seen = False
+    for row in rows:
+        if row == "\\hline":
+            if not header_sep_seen:
+                output.append(row)
+                header_sep_seen = True
+            continue
+        output.append(row)
+    
+    output.append("\\hline")
+    output.append("\\end{tabular}\n")
+    return "\n".join(output)
+
+
 # ---------------------------------------------------------------------------
 # 1. Per-Attack-Type Evaluation
 # ---------------------------------------------------------------------------
@@ -120,7 +172,7 @@ def per_attack_type_evaluation(protocol: str) -> dict[str, Any]:
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     model = model.to(device)
 
     # Load test data with attack types
@@ -427,6 +479,12 @@ def main():
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2)
             print(f"  Saved to {out_path}")
+            
+            # Save LaTeX table
+            tex_path = OUTPUT_DIR / f"{protocol}_per_attack_type.tex"
+            tex_path.write_text(markdown_table_to_latex(table), encoding="utf-8")
+            print(f"  Saved LaTeX table to {tex_path}")
+            
             print(table)
 
     # 2. Model complexity
@@ -436,6 +494,9 @@ def main():
     complexity = model_complexity_summary()
     report_parts.append(complexity)
     report_parts.append("")
+    # Save LaTeX table
+    tex_path = OUTPUT_DIR / "model_complexity.tex"
+    tex_path.write_text(markdown_table_to_latex(complexity), encoding="utf-8")
     print(complexity)
 
     # 3. Distillation ablation
@@ -445,6 +506,9 @@ def main():
     ablation = distillation_ablation()
     report_parts.append(ablation)
     report_parts.append("")
+    # Save LaTeX table
+    tex_path = OUTPUT_DIR / "distillation_ablation.tex"
+    tex_path.write_text(markdown_table_to_latex(ablation), encoding="utf-8")
     print(ablation)
 
     # 4. Simulation latency
@@ -454,6 +518,9 @@ def main():
     latency = simulation_latency_summary()
     report_parts.append(latency)
     report_parts.append("")
+    # Save LaTeX table
+    tex_path = OUTPUT_DIR / "simulation_latency.tex"
+    tex_path.write_text(markdown_table_to_latex(latency), encoding="utf-8")
     print(latency)
 
     # Write combined report

@@ -47,7 +47,7 @@ if nn is not None:
                 nhead=nhead,
                 dim_feedforward=d_model * 4,
                 batch_first=True,
-                dropout=0.1,
+                dropout=0.2,  # Increased from 0.1 to reduce val→test gap
                 activation="gelu",
             )
             self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)

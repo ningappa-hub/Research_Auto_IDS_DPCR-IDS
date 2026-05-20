@@ -55,14 +55,34 @@
     "pseudo_time_step": 0.01
   },
   "training": {
-    "batch_size": 32,
+    "batch_size": 128,
     "epochs": 50,
     "learning_rate": 0.0002,
     "weight_decay": 1e-05,
     "early_stopping_patience": 10,
+    "grad_clip_norm": 1.0,
+    "label_smoothing": 0.0,
+    "lr_scheduler": "none",
     "distillation": {
       "alpha": 0.5,
       "temperature": 4.0
+    },
+    "protocol_overrides": {
+      "can": {
+        "epochs": 75,
+        "early_stopping_patience": 12
+      },
+      "ethernet": {
+        "learning_rate": 0.00005,
+        "weight_decay": 1e-04,
+        "early_stopping_patience": 15,
+        "grad_clip_norm": 1.0,
+        "lr_scheduler": "cosine",
+        "distillation": {
+          "alpha": 0.5,
+          "temperature": 6.0
+        }
+      }
     }
   },
   "routing": {

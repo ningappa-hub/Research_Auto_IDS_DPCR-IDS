@@ -35,6 +35,17 @@ from dpcr_ids.utils.fs import write_json
 from dpcr_ids.utils.seed import set_global_seed
 
 
+def _resolve_training_cfg(config: dict[str, Any], protocol: str) -> dict[str, Any]:
+    """Merge base training config with any protocol-level overrides."""
+    base = dict(config["training"])
+    overrides = base.pop("protocol_overrides", {}).get(protocol, {})
+    merged = {**base, **overrides}
+    # Also merge nested distillation sub-dict if override has one
+    if "distillation" in overrides:
+        merged["distillation"] = {**base.get("distillation", {}), **overrides["distillation"]}
+    return merged
+
+
 MODEL_FILE_NAMES = {
     "student": "{protocol}_student.pt",
     "teacher": "{protocol}_teacher.pt",
@@ -42,8 +53,49 @@ MODEL_FILE_NAMES = {
 }
 
 
+class InMemoryTensorDataset:
+    """Dataset that loads an entire JSONL split into contiguous RAM tensors once.
+
+    With 128 GB RAM available this eliminates all per-item disk I/O during
+    training.  __getitem__ is a pure tensor slice — no JSON parsing, no file
+    seeks — so the GPU receives data as fast as PCIe bandwidth allows.
+
+    Loading progress is printed every 50 000 rows so the user can see the
+    one-time startup cost.
+    """
+
+    def __init__(self, path: str | Path) -> None:
+        torch = require_dependency("torch")
+        self.path = Path(path)
+        features_list: list = []
+        labels_list: list = []
+        print(f"Loading {self.path.name} into RAM ...", flush=True)
+        with self.path.open("r", encoding="utf-8") as fh:
+            for i, line in enumerate(fh):
+                line = line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                features_list.append(row["features"])
+                labels_list.append(float(row["label"]))
+                if (i + 1) % 50_000 == 0:
+                    print(f"  ... {i + 1:,} rows loaded", flush=True)
+        self._features = torch.tensor(features_list, dtype=torch.float32)
+        self._labels   = torch.tensor(labels_list,   dtype=torch.float32)
+        print(f"  Done — {len(self._labels):,} rows | features {tuple(self._features.shape)} | "
+              f"RAM ~{self._features.element_size() * self._features.nelement() / 1024**3:.2f} GB",
+              flush=True)
+
+    def __len__(self) -> int:
+        return len(self._labels)
+
+    def __getitem__(self, index: int):
+        return self._features[index], self._labels[index]
+
+
+# Keep the old seek-per-item class as a fallback (useful if RAM is limited).
 class JsonlTensorDataset:
-    """Map-style dataset backed by random access into a prepared JSONL split."""
+    """Seek-per-item fallback dataset — use InMemoryTensorDataset when RAM allows."""
 
     def __init__(self, path: str | Path) -> None:
         self._torch = require_dependency("torch")
@@ -102,8 +154,8 @@ def _prepared_split_path(config: dict[str, Any], protocol: str, split: str) -> P
     return Path(config["artifacts_dir"]) / "prepared" / protocol / f"{split}.jsonl"
 
 
-def _prepared_dataset(config: dict[str, Any], protocol: str, split: str) -> JsonlTensorDataset:
-    return JsonlTensorDataset(_prepared_split_path(config, protocol, split))
+def _prepared_dataset(config: dict[str, Any], protocol: str, split: str) -> InMemoryTensorDataset:
+    return InMemoryTensorDataset(_prepared_split_path(config, protocol, split))
 
 
 def _close_dataset(dataset) -> None:
@@ -167,7 +219,20 @@ def _resolve_device(torch_module):
 
 def _build_loader(dataset, batch_size: int, shuffle: bool, pin_memory: bool):
     dataset_mod = require_dependency("torch.utils.data")
-    return dataset_mod.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, pin_memory=pin_memory)
+    import platform
+    # Windows uses 'spawn' for multiprocessing which requires picklable dataset objects.
+    # JsonlTensorDataset holds an open file handle — not picklable on Windows.
+    # Use num_workers=0 (in-process) on Windows; 4 workers on Linux/macOS (fork).
+    num_workers = 0 if platform.system() == "Windows" else 4
+    persistent = num_workers > 0
+    return dataset_mod.DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        pin_memory=pin_memory,
+        num_workers=num_workers,
+        persistent_workers=persistent,
+    )
 
 
 def _predict_dataset(
@@ -292,11 +357,24 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
     set_global_seed(int(config.get("seed", 42)))
     device = _resolve_device(torch)
     pin_memory = device.type == "cuda"
-    batch_size = int(config["training"]["batch_size"])
-    epochs = int(config["training"]["epochs"])
-    patience = int(config["training"].get("early_stopping_patience", epochs))
+
+    train_cfg = _resolve_training_cfg(config, protocol)
+    batch_size = int(train_cfg["batch_size"])
+    epochs = int(train_cfg["epochs"])
+    patience = int(train_cfg.get("early_stopping_patience", epochs))
     patience = epochs if patience <= 0 else patience
-    distill_cfg = config["training"].get("distillation", {"alpha": 0.5, "temperature": 4.0})
+    distill_cfg = train_cfg.get("distillation", {"alpha": 0.5, "temperature": 4.0})
+    grad_clip_norm = float(train_cfg.get("grad_clip_norm", 0.0))  # 0 = disabled
+    label_smoothing = float(train_cfg.get("label_smoothing", 0.0))
+    lr_scheduler_type = str(train_cfg.get("lr_scheduler", "none")).lower()
+    learning_rate = float(train_cfg["learning_rate"])
+    weight_decay = float(train_cfg["weight_decay"])
+
+    print(
+        f"training_cfg protocol={protocol} lr={learning_rate} wd={weight_decay} "
+        f"patience={patience} clip={grad_clip_norm} smoothing={label_smoothing} "
+        f"scheduler={lr_scheduler_type} distill_T={distill_cfg.get('temperature', 4.0)}"
+    )
 
     if protocol == FUSION_PROTOCOL:
         if teacher:
@@ -317,20 +395,37 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
         train_loader = _build_loader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory)
         optimizer = torch.optim.AdamW(
             model.parameters(),
-            lr=float(config["training"]["learning_rate"]),
-            weight_decay=float(config["training"]["weight_decay"]),
+            lr=learning_rate,
+            weight_decay=weight_decay,
         )
-        
+
+        # LR scheduler
+        scheduler = None
+        if lr_scheduler_type == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=epochs, eta_min=learning_rate * 0.01
+            )
+            print(f"cosine_scheduler protocol={protocol} T_max={epochs} eta_min={learning_rate * 0.01:.2e}")
+
         pos_weight = None
         if distill_from is None:
-            num_positives = 0
-            for _, batch_labels in train_loader:
-                num_positives += int((batch_labels == 1).sum())
-            num_negatives = len(train_dataset) - num_positives
+            # Fast path: InMemoryTensorDataset exposes _labels as a contiguous tensor.
+            # Compute pos_weight in one GPU op instead of iterating the loader batch-by-batch.
+            if hasattr(train_dataset, "_labels"):
+                label_tensor = train_dataset._labels.to(device)
+                num_positives = int(label_tensor.sum().item())
+                num_negatives = len(train_dataset) - num_positives
+            else:
+                # Fallback for any other dataset type
+                num_positives = 0
+                for _, batch_labels in train_loader:
+                    num_positives += int((batch_labels == 1).sum())
+                num_negatives = len(train_dataset) - num_positives
             if num_positives > 0 and num_negatives > 0:
                 weight_val = float(num_negatives) / float(num_positives)
                 pos_weight = torch.tensor([weight_val], device=device)
-                print(f"Applying BCE pos_weight={weight_val:.4f} for {protocol}")
+                print(f"Applying BCE pos_weight={weight_val:.4f} for {protocol} "
+                      f"(pos={num_positives:,} neg={num_negatives:,})")
 
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
@@ -347,6 +442,7 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
             for features, labels in train_loader:
                 features = features.to(device, non_blocking=pin_memory)
                 labels = labels.to(device, non_blocking=pin_memory)
+
                 optimizer.zero_grad(set_to_none=True)
                 logits = model(features)
                 if distill_from is None:
@@ -362,9 +458,17 @@ def _train_binary_model(config: dict[str, Any], protocol: str, teacher: bool = F
                         temperature=float(distill_cfg["temperature"]),
                     )
                 loss.backward()
+
+                # Gradient clipping
+                if grad_clip_norm > 0.0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_norm)
+
                 optimizer.step()
                 epoch_loss += float(loss.detach().cpu().item())
                 batch_count += 1
+
+            if scheduler is not None:
+                scheduler.step()
 
             epochs_ran = epoch + 1
             val_labels, _, val_probs, _ = _predict_dataset(

@@ -194,7 +194,7 @@ Do not run plain `make` from `~/default_workspace/omnetpp-6.3.0`; that rebuilds 
 | CAN stride | 50 | `research_pipeline.yaml` |
 | CAN features | 16 | `research_pipeline.yaml` |
 | CAN temperature | 0.95 | `calibration/can.json` |
-| ETH image shape | [3, 32, 32] | `research_pipeline.yaml` |
+| ETH image shape | [4, 32, 32] | `research_pipeline.yaml` |
 | ETH temperature | 0.5 | `calibration/ethernet.json` |
 | Fusion input | [2, 129] | `research_pipeline.yaml` |
 | Fusion temperature | 1.1 | `calibration/fusion.json` |
