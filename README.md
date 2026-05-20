@@ -63,3 +63,52 @@ dpcr-ids-replay-fusion --model artifacts/dpcr_ids_research_v1/export/fusion_stud
 
 Detailed Raspberry Pi setup and replay workflow:
 - [Raspberry Pi Deployment Guide](docs/raspberry_pi_deployment.md)
+
+
+Based on the `REPRODUCE.md` guide from the codebase, here are the exact commands required to reproduce the full model training pipeline. 
+
+Ensure you have your virtual environment activated and the required ML dependencies installed (`pip install -e ".[ml]"`) before running these. All commands should be executed from the project root (`c:\ResearchAutoIDS`).
+
+### 1. Train the Heavy "Teacher" Models
+First, you train the large transformer models that will be used to distill knowledge into the edge-friendly models.
+```powershell
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-teacher --config configs/research_pipeline.yaml --protocol ethernet
+```
+
+### 2. Train the Independent "Student" Models
+Next, you train the lightweight models (TCN for CAN, CNN for Ethernet) directly on ground-truth labels.
+```powershell
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol ethernet
+```
+
+### 3. Perform Knowledge Distillation
+This step uses the Teacher models to guide and optimize the Student models for better accuracy while maintaining their small footprint.
+```powershell
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids distill --config configs/research_pipeline.yaml --protocol ethernet
+```
+
+### 4. Calibrate the Models (Temperature Scaling)
+Calibration ensures the probability outputs (confidence scores) of the distilled models are reliable.
+```powershell
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol ethernet
+```
+
+### 5. Train the Random Forest Fallback Classifiers
+This trains a fallback mechanism for the specific samples where the student models report high uncertainty.
+```powershell
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol can
+python -m dpcr_ids train-fallback --config configs/research_pipeline.yaml --protocol ethernet
+```
+
+### 6. Train and Calibrate the Late Fusion Head
+Finally, you train the Gated MLP fusion model that combines the representations of both the CAN and Ethernet experts. This step **must** be run after the individual CAN and Ethernet students are fully trained.
+```powershell
+python -m dpcr_ids train-student --config configs/research_pipeline.yaml --protocol fusion
+python -m dpcr_ids calibrate --config configs/research_pipeline.yaml --protocol fusion
+```
+
+Once you run these commands sequentially, all resulting `.pt` (PyTorch checkpoints), calibration JSONs, and fallback `.pkl` models will be securely saved into your `artifacts/dpcr_ids_research_v1/` directory as specified in the configuration.
